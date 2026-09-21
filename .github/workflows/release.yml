@@ -1,0 +1,64 @@
+name: Release
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the package and create a GitHub release
+        type: boolean
+        default: false
+permissions:
+  contents: write
+  id-token: write
+concurrency:
+  group: release
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+      - name: Read package version
+        shell: bash
+        run: |
+          version=$(dotnet msbuild src/EsoData/EsoData.csproj -nologo -getProperty:PackageVersion)
+          echo "PACKAGE_VERSION=$version" >> "$GITHUB_ENV"
+          if [[ "$GITHUB_REF_TYPE" == "tag" && "$GITHUB_REF_NAME" != "v$version" ]]; then
+            echo "Tag must match Version.props ($version)." >&2
+            exit 1
+          fi
+      - run: dotnet build EsoData.sln -c Release
+      - run: dotnet test EsoData.sln -c Release --no-build
+      - run: dotnet pack src/EsoData/EsoData.csproj -c Release --no-build -o artifacts/packages
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-packages
+          path: artifacts/packages/*
+      - name: Authenticate with NuGet.org
+        if: github.event_name == 'push' || inputs.publish
+        id: login
+        uses: NuGet/login@v1
+        with:
+          user: JuliusJacobsohn
+      - name: Publish NuGet package
+        if: github.event_name == 'push' || inputs.publish
+        env:
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
+        run: dotnet nuget push "artifacts/packages/EsoData.NET.${PACKAGE_VERSION}.nupkg" --source https://api.nuget.org/v3/index.json --api-key "$NUGET_API_KEY" --skip-duplicate
+      - name: Create GitHub release
+        if: github.event_name == 'push' || inputs.publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="v$PACKAGE_VERSION"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" artifacts/packages/* --clobber
+          else
+            gh release create "$tag" artifacts/packages/* --target "$GITHUB_SHA" --title "EsoData.NET $PACKAGE_VERSION" --generate-notes
+          fi
