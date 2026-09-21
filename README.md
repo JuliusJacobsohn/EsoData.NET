@@ -83,7 +83,9 @@ foreach (var character in observations.CharacterStates)
 ```csharp
 using EsoData.Catalogs;
 
-var catalog = LibSetsCatalog.Read(Path.Combine(addonsDirectory, "LibSets"));
+var membership = LibSetsCatalog.Read(Path.Combine(addonsDirectory, "LibSets"));
+var metadata = UespCatalog.Parse(File.ReadAllText("uesp-items-and-skills.json"));
+var catalog = GameCatalog.Merge([membership, metadata]);
 catalog.Write("catalog.json");
 
 var reloaded = GameCatalog.Read("catalog.json");
@@ -91,7 +93,7 @@ foreach (var set in reloaded.FindSets("Order"))
     Console.WriteLine($"{set.Id}: {set.Names["en"]}, {set.ItemIds.Count} item IDs");
 ```
 
-Run that again after updating LibSets to refresh its catalog. Set membership alone does not reveal each item's trait or equipment type. Enrich item/skill metadata from UESP's `exportJson.php` output with `UespCatalog.Parse(json, sourceUrl, version)`, or provide a catalog in the library's JSON shape. Fetching, refresh scheduling and storage belong to your application. UESP access/availability is not guaranteed by this library.
+Run that again after updating LibSets to refresh its catalog. Set membership alone does not reveal each item's trait or equipment type. Enrich item/skill metadata from UESP's `exportJson.php` output with `UespCatalog.Parse(json, sourceUrl, version)`, or provide a catalog in the library's JSON shape. `GameCatalog.Merge` preserves LibSets membership and lets later descriptive fields supplement it. Fetching, refresh scheduling and storage belong to your application. UESP access/availability is not guaranteed by this library.
 
 Catalogs record provenance and keep IDs as data. No game database is bundled, downloaded on startup, or pinned to an ESO patch. `GameCatalog` also accepts externally supplied collection-piece slot masks and research-index mappings. **Those mappings are not included in the corresponding addon saves.** See [formats and data boundaries](docs/formats.md).
 
@@ -101,8 +103,10 @@ Catalogs record provenance and keep IDs as data. No game database is bundled, do
 using EsoData.Formats;
 using EsoData.Items;
 
-// Resolve this exact set/piece/trait item ID from item metadata first.
-long resolvedItemId = /* your selected item ID */;
+// Numeric values come from the refreshable catalog, not the package.
+var resolved = new CraftedItemSelector(setId: 642, EquipType: 1, ArmorType: 2, Trait: 11)
+    .Resolve(catalog);
+long resolvedItemId = resolved.Id;
 var item = CraftedItem.Create(resolvedItemId, level: 32, quality: ItemQuality.Epic);
 string pasteIntoLazySetCrafter = CraftingQueue.Write([item, item]);
 ```

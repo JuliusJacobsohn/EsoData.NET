@@ -36,4 +36,22 @@ public class CatalogTests
         Assert.Equal(2, catalog.ToActiveSkill(900103).Morph);
         Assert.Throws<KeyNotFoundException>(() => catalog.ToBarSlot(999));
     }
+
+    [Fact]
+    public void MergedCatalogResolvesOneCraftedItemFromMembershipAndMetadata()
+    {
+        var membership = LibSetsCatalog.Parse("""
+            setDataPreloaded[LIBSETS_TABLEKEY_SETNAMES] = {[7]={en='Example Set'}}
+            """, "setDataPreloaded[LIBSETS_TABLEKEY_SETITEMIDS] = {[7]={100}}");
+        var metadata = UespCatalog.Parse("""
+            {"minedItemSummary":[{"itemId":"100","name":"Example Helm","setId":"7","equipType":"1","armorType":"2","weaponType":"0","trait":"11"}]}
+            """);
+
+        var item = new CraftedItemSelector(7, EquipType: 1, ArmorType: 2, Trait: 11)
+            .Resolve(GameCatalog.Merge([membership, metadata]));
+
+        Assert.Equal(100, item.Id);
+        Assert.Equal("Example Helm", item.Name);
+        Assert.Equal(7, item.SetId);
+    }
 }

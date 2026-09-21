@@ -7,6 +7,28 @@ namespace EsoData.Catalogs;
 public sealed record CatalogSource(string Name, string? Location = null, string? Version = null, DateTimeOffset? ReadAt = null);
 public sealed record ItemDefinition(long Id, string? Name = null, long? SetId = null, int? EquipType = null,
     int? ArmorType = null, int? WeaponType = null, int? Trait = null);
+/// <summary>Describes one crafted result using data carried by an external item catalog.</summary>
+public sealed record CraftedItemSelector(long SetId, int? EquipType = null, int? ArmorType = null,
+    int? WeaponType = null, int? Trait = null)
+{
+    /// <summary>Finds exactly one item ID, or explains which additional field is needed.</summary>
+    public ItemDefinition Resolve(GameCatalog catalog)
+    {
+        ArgumentNullException.ThrowIfNull(catalog);
+        if (SetId <= 0) throw new ArgumentOutOfRangeException(nameof(SetId));
+        var matches = catalog.Items.Values.Where(item => item.SetId == SetId
+            && (EquipType is null || item.EquipType == EquipType)
+            && (ArmorType is null || item.ArmorType == ArmorType)
+            && (WeaponType is null || item.WeaponType == WeaponType)
+            && (Trait is null || item.Trait == Trait)).ToArray();
+        return matches.Length switch
+        {
+            1 => matches[0],
+            0 => throw new KeyNotFoundException("No matching item definition. Import metadata with equipment and trait fields."),
+            _ => throw new InvalidOperationException($"{matches.Length} item definitions match. Specify the remaining equipment, armor, weapon or trait fields.")
+        };
+    }
+}
 public sealed record SkillDefinition(long Id, string? Name = null, long? BaseAbilityId = null,
     int? Rank = null, int? Morph = null, bool? IsPassive = null, long? CraftedId = null, string? SkillLine = null);
 public sealed record SetDefinition(long Id, IReadOnlyDictionary<string, string> Names, IReadOnlyList<long> ItemIds);
@@ -32,6 +54,32 @@ public sealed class GameCatalog
     public static GameCatalog Read(string path) => FromJson(File.ReadAllText(path));
     public static GameCatalog FromJson(string json) => JsonSerializer.Deserialize<GameCatalog>(json, JsonOptions)
         ?? throw new FormatException("Catalog must be a JSON object.");
+    /// <summary>
+    /// Combines refreshable catalogs in order. Later non-null item/skill fields win, so load installed
+    /// membership data first and external descriptive metadata afterwards.
+    /// </summary>
+    public static GameCatalog Merge(IEnumerable<GameCatalog> catalogs)
+    {
+        ArgumentNullException.ThrowIfNull(catalogs);
+        var merged = new GameCatalog();
+        foreach (var catalog in catalogs)
+        {
+            ArgumentNullException.ThrowIfNull(catalog);
+            merged.Sources.AddRange(catalog.Sources);
+            foreach (var set in catalog.Sets.Values)
+                merged.Sets[set.Id] = merged.Sets.TryGetValue(set.Id, out var existing)
+                    ? Merge(existing, set)
+                    : set;
+            foreach (var item in catalog.Items.Values)
+                merged.Items[item.Id] = merged.Items.TryGetValue(item.Id, out var existing) ? Merge(existing, item) : item;
+            foreach (var skill in catalog.Skills.Values)
+                merged.Skills[skill.Id] = merged.Skills.TryGetValue(skill.Id, out var existing) ? Merge(existing, skill) : skill;
+            merged.CollectionPieces.AddRange(catalog.CollectionPieces.Where(x => !merged.CollectionPieces.Contains(x)));
+            merged.ResearchTraits.AddRange(catalog.ResearchTraits.Where(x => !merged.ResearchTraits.Contains(x)));
+            merged.ResearchSignature = catalog.ResearchSignature ?? merged.ResearchSignature;
+        }
+        return merged;
+    }
     public string ToJson() => JsonSerializer.Serialize(this, JsonOptions);
     public void Write(string path) => File.WriteAllText(path, ToJson());
     public IEnumerable<SetDefinition> FindSets(string name, string language = "en") => Sets.Values
@@ -60,4 +108,17 @@ public sealed class GameCatalog
     }
     private SkillDefinition GetSkill(long id) => Skills.TryGetValue(id, out var skill) ? skill
         : throw new KeyNotFoundException($"Ability {id} is not in this catalog.");
+    private static ItemDefinition Merge(ItemDefinition existing, ItemDefinition later) => new(later.Id,
+        later.Name ?? existing.Name, later.SetId ?? existing.SetId, later.EquipType ?? existing.EquipType,
+        later.ArmorType ?? existing.ArmorType, later.WeaponType ?? existing.WeaponType, later.Trait ?? existing.Trait);
+    private static SetDefinition Merge(SetDefinition existing, SetDefinition later)
+    {
+        var names = new Dictionary<string, string>(existing.Names);
+        foreach (var pair in later.Names) names[pair.Key] = pair.Value;
+        return new(later.Id, names, existing.ItemIds.Concat(later.ItemIds).Distinct().Order().ToArray());
+    }
+    private static SkillDefinition Merge(SkillDefinition existing, SkillDefinition later) => new(later.Id,
+        later.Name ?? existing.Name, later.BaseAbilityId ?? existing.BaseAbilityId, later.Rank ?? existing.Rank,
+        later.Morph ?? existing.Morph, later.IsPassive ?? existing.IsPassive, later.CraftedId ?? existing.CraftedId,
+        later.SkillLine ?? existing.SkillLine);
 }
