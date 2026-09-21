@@ -96,6 +96,13 @@ public class FormatTests
     }
 
     [Fact]
+    public void NativeCspsUsesAddonPlaceholdersForAbsentSkillGroups()
+    {
+        var build = new CspsBuild { Skills = new([new(900102, 2)], []) };
+        Assert.StartsWith("900102:2*-*-*-*-#", build.ToString());
+    }
+
+    [Fact]
     public void HubUrlHandlesOtherQueryParametersAndExplicitCpPoints()
     {
         var build = new HubBuild

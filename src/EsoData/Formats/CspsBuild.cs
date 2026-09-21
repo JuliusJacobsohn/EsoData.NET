@@ -32,11 +32,12 @@ public sealed class CspsBuild
             var styles = Entries(Field(fields, 3)).Select(x => Parts(x, ':', 2)).Select(p => new SkillStyle(Number(p[0]), Number(p[1]))).ToArray();
             return new(active, passive, crafted, styles, Numbers(Field(fields, 4)));
         }
-        set => sections[0] = value is null ? "-" : Join([
+        set => sections[0] = value is null ? "-" : Join(new[] {
             Join(value.Active.Select(x => $"{N(x.AbilityId)}:{N(x.Morph)}")),
             Join(value.Passive.Select(x => $"{N(x.AbilityId)}:{N(x.Rank)}")),
             Join((value.Crafted ?? []).Select(x => $"{N(x.CraftedAbilityId)}:{N(x.Script1)}:{N(x.Script2)}:{N(x.Script3)}")),
-            Join((value.Styles ?? []).Select(x => $"{N(x.AbilityId)}:{N(x.CollectibleId)}")), Numbers(value.Subclasses)], '*');
+            Join((value.Styles ?? []).Select(x => $"{N(x.AbilityId)}:{N(x.CollectibleId)}")), Numbers(value.Subclasses) }
+            .Select(x => x.Length == 0 ? "-" : x), '*');
     }
     /// <summary>Ordinary slots use the unmorphed rank-one ID, unlike Skills.Active.</summary>
     public IReadOnlyList<IReadOnlyList<BarSlot?>>? Bars
