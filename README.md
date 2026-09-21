@@ -104,7 +104,7 @@ using EsoData.Formats;
 using EsoData.Items;
 
 // Numeric values come from the refreshable catalog, not the package.
-var resolved = new CraftedItemSelector(setId: 642, EquipType: 1, ArmorType: 2, Trait: 11)
+var resolved = new CraftedItemSelector(SetId: 642, EquipType: 1, ArmorType: 2, Trait: 11)
     .Resolve(catalog);
 long resolvedItemId = resolved.Id;
 var item = CraftedItem.Create(resolvedItemId, level: 32, quality: ItemQuality.Epic);
