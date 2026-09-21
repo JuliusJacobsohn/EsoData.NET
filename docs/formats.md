@@ -36,6 +36,17 @@ Research `rt` contains trait flags, research slot counts, then ten-character tim
 
 LMAS Data2 encodes a timestamp followed by six-character (36-bit) masks, with entry `setId + 1` representing a set. Masks use the game's collection slot flags. They are not indexes into a list of items. `IsCollected(setId, slotMask)` requires the real mask. `GameCatalog.CollectionPieces` is an optional place for externally exported piece/slot mappings. Missing accounts/fields return no observation; explicit zero masks are retained, even for IDs that a catalog may identify as uncollectible.
 
+## UESP character details
+
+`UespLogReader` exposes `CharacterState.Research`, `Champion`, `Statistics` and `SkillLineRanks` in addition to the existing skills, allocations and equipment. These follow `GetCharDataResearchInfo`, `CreateCharDataChampionPoints2`, `CreateCharDataStats`, `CreateCharDataAdvancedStats` and `CreateCharDataSkills` in the linked serializer.
+
+- Research uses `Research.Timestamp`, craft/line `:Known` and `:Total` counts, `:Open` slots and indexed `:TraitN`/`:ItemN`/`:TimeN` active research. `RemainingSeconds` is at that timestamp, not now. Display strings are retained verbatim and never parsed into trait IDs or additional learned traits. The source can show `[researching trait]` in its known display list. Missing counts stay null. This summary does not resolve LCK's global research indexes.
+- Champion slots retain the game's slot indexes and skill IDs, including explicit zero (empty); an absent slots table stays null. Stars contain both `skillId` and ability `id`, the qualified display name and `slot` (`-1` means unslotted in UESP). UESP currently emits only stars with positive spending; this is not a complete CP skill catalog. Discipline names and their spent/unspent counts are read from the save without a hard-coded discipline list.
+- Stats split `Stats` keys into current and `BarN:` groups, and `Computed:` values into separate dictionaries. Advanced stats retain `statId`, category, format type and optional flat/percent values. No percentage/rating conversion is inferred. Names, units and computed formulas belong to the source. Saved bar caches have no individual observation timestamp and may reflect different buffs or equipment.
+- Skill-line ranks are scalar entries in `Skills` keyed by the original qualified name. Purchased abilities remain separate. A line being listed does not establish that its skills are purchased or accessible.
+
+Absent sections remain null; original data remains available in `Raw`. New API numbers are accepted normally.
+
 ## Native CSPS
 
 Nine `#` sections: `skills#hotbars#attributes#mundus#cp#gear#quickslots#outfit#role`. Empty or `-` top-level sections are skipped by the importer; they do not universally clear a category. Import checkboxes also affect application.
@@ -66,4 +77,4 @@ Parsing a URL reads and decodes only the `addondata` parameter; unrelated query 
 
 ## Validation scope
 
-Automated tests use synthetic IDs and records, not usable build recommendations. Real local IIfA, LCK, CSPS, Lazy Set Crafter and LibSets files were also read successfully during initial development; private observations are not published. LMAS and uespLog coverage is based on upstream serializers and synthetic fixtures. In-game application/crafting is outside these tests.
+Automated tests use synthetic IDs and records, not usable build recommendations. Readers have also been exercised against real local IIfA, LCK, LMAS, uespLog, CSPS, Lazy Set Crafter and LibSets data; private observations are not published. In-game application/crafting is outside these tests.

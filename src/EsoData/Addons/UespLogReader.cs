@@ -48,7 +48,11 @@ public static partial class UespLogReader
                     ChampionPoints = ReaderSupport.Int(data, "ChampionPointsEarned"),
                     Attributes = data.Integer("AttributesHealth") is not null ? new(ReaderSupport.Int(data, "AttributesHealth") ?? 0,
                         ReaderSupport.Int(data, "AttributesMagicka") ?? 0, ReaderSupport.Int(data, "AttributesStamina") ?? 0) : null,
-                    Skills = skills, ChampionAllocations = cp, Equipment = equipment
+                    Skills = skills, ChampionAllocations = cp, Equipment = equipment,
+                    Champion = UespCharacterDetails.Champion(data.Table("ChampionPoints2")),
+                    Research = UespCharacterDetails.Research(data.Table("Research")),
+                    Statistics = UespCharacterDetails.Statistics(data),
+                    SkillLineRanks = UespCharacterDetails.SkillLines(data.Table("Skills"))
                 });
             }
             if (data.Table("Inventory") is LuaTable inventory)

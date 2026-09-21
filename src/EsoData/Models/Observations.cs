@@ -28,6 +28,10 @@ public sealed class CharacterState
     public Attributes? Attributes { get; init; }
     public IReadOnlyList<SkillAllocation> Skills { get; init; } = [];
     public IReadOnlyList<ChampionAllocation> ChampionAllocations { get; init; } = [];
+    public ChampionState? Champion { get; init; }
+    public ResearchSummary? Research { get; init; }
+    public CharacterStatistics? Statistics { get; init; }
+    public IReadOnlyDictionary<string, int>? SkillLineRanks { get; init; }
     public IReadOnlyDictionary<string, ItemLink> Equipment { get; init; } = new Dictionary<string, ItemLink>();
     public required LuaTable Raw { get; init; }
 }

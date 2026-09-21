@@ -24,7 +24,7 @@ The package is `EsoData.NET`; its assembly and root namespace are `EsoData`. Req
 | IIfA | Account/server character directory and item stacks by character, bank, craft bag and other saved locations |
 | LibCharacterKnowledge | Recipes, furnishing plans, motifs, scribing unlocks, research flags and timers |
 | LibMultiAccountSets | Current compressed and legacy account collection masks, including 36-bit values |
-| uespLog | Character observations, purchased skills, CP allocations, equipped items, backpack, bank, craft bag and house storage |
+| uespLog | Character observations, purchased skills and skill-line ranks, CP slots/allocations/budgets, research summaries/timers, current and per-bar stats, equipped items and saved inventories |
 | Caro's Skill Point Saver | Default, named and auxiliary saved profiles; native CSPS text import/export with skills, passive ranks, bars, attributes, CP and gear |
 | ESO-Hub | `addondata` text and build-editor URLs, including skills, CP, equipment and consumables |
 | Dolgubon's Lazy Set Crafter | Read saved crafting queues; generate and read item-link lists for **Import Links** |
@@ -58,6 +58,25 @@ var observations = UespLogReader.Read(Path.Combine(savedVariablesDirectory, "ues
 ```
 
 Missing scans stay missing. In knowledge records, `Known = null` means unavailable; `false` is an observed unset bit. A missing category is not proof that the character knows nothing. A saved CSPS profile is a plan, not proof it is applied.
+
+### Character research, CP and statistics
+
+```csharp
+foreach (var character in observations.CharacterStates)
+{
+    Console.WriteLine($"{character.Character.Name}, observed {character.ObservedAt}");
+    foreach (var craft in character.Research?.Crafts ?? [])
+        Console.WriteLine($"{craft.Craft}: {craft.KnownTraits}/{craft.TotalTraits}; {craft.OpenSlots} research slots free");
+
+    Console.WriteLine($"Unspent CP: {character.Champion?.UnspentPoints}");
+    // Slot values are champion skill IDs; zero means explicitly empty.
+    var slots = character.Champion?.Slots;
+    var currentStats = character.Statistics?.Current?.Values;
+    var skillLineRanks = character.SkillLineRanks;
+}
+```
+
+`Research` includes per-line counts, original display labels, active research and its own observation timestamp. Display labels are not trait-ID mappings; a bracketed trait may still be researching. `Champion` adds per-discipline budgets, named stars, their distinct skill/ability IDs and slots while retaining the existing `ChampionAllocations` API. `Statistics` separates current, saved-bar, computed and advanced values, retaining source names and units (including unknown future stat names). Cached bars can come from different moments; buffs and equipment affect the observations. Missing sections are `null`. See [format details](docs/formats.md#uesp-character-details).
 
 ## Resolve IDs from refreshable catalogs
 
