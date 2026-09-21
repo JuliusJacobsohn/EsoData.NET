@@ -29,6 +29,7 @@ public class FormatTests
         Assert.Equal(255, root.Table("Other")!.Integer("hex"));
         Assert.Throws<FormatException>(() => SavedVariables.Parse("x = os.execute('no')"));
         Assert.Throws<FormatException>(() => SavedVariables.ParseTable("{}; print('no')"));
+        Assert.Equal(1, SavedVariables.Parse("x=1--comment\ny=2").Integer("x"));
     }
 
     [Theory]

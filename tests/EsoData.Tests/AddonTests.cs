@@ -121,7 +121,7 @@ public class AddonTests
         var link = CraftedItem.Create(900001, 32, ItemQuality.Epic).ToString();
         var lua = $$$$$$"""
             uespLogSavedVars={Default={['@Example']={charData={data={CharName='Example',CharId='123',AccountName='@Example',
-              TimeStamp=100,APIVersion=999999,Level=32,Skills={['1:1:1']={id=900100,rank=2,type='passive'}},
+              UniqueAccountName='ServerPC@Example',TimeStamp=100,APIVersion=999999,Level=32,Skills={['1:1:1']={id=900100,rank=2,type='passive'}},
               ChampionPoints2={['Discipline:Star']={skillId=100,id=900200,points=20}},
               EquipSlots={ [0]={link='{{{{{{link}}}}}}'} },Inventory={ [1]='3 {{{{{{link}}}}}} Junk' }
             }}}}}
@@ -131,6 +131,9 @@ public class AddonTests
         Assert.Equal(100, Assert.Single(character.ChampionAllocations).SkillId);
         Assert.True(Assert.Single(character.Skills).IsPassive);
         Assert.Equal(3, Assert.Single(Assert.Single(result.Inventories).Items).Count);
+        Assert.Null(result.Inventories[0].Items[0].Slot);
+        Assert.Equal(1, result.Inventories[0].Items[0].SourceIndex);
+        Assert.Equal("ServerPC@Example", character.Character.SourceAccountId);
         Assert.Single(character.Equipment);
     }
 }

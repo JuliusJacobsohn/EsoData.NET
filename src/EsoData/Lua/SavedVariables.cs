@@ -76,7 +76,7 @@ public static class SavedVariables
                 var name => throw Error($"Executable or unsupported Lua value '{name}'")
             };
             var start = position;
-            while (char.IsAsciiLetterOrDigit(Current) || Current is '+' or '-' or '.') position++;
+            while ((char.IsAsciiLetterOrDigit(Current) || Current is '+' or '-' or '.') && !Starts("--")) position++;
             if (start == position) throw Error("Expected data value");
             var token = text[start..position];
             if (long.TryParse(token, NumberStyles.Integer, CultureInfo.InvariantCulture, out var integer)) return integer;

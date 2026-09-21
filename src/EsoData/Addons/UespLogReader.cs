@@ -25,7 +25,7 @@ public static partial class UespLogReader
             var timestamp = ReaderSupport.Time(data.Integer("TimeStamp"));
             if (characterName is not null)
             {
-                var character = new CharacterReference(server, account, characterId!, characterName);
+                var character = new CharacterReference(server, account, characterId!, characterName, unique);
                 result.Characters.Add(character);
                 var skills = new List<SkillAllocation>();
                 foreach (var skill in data.Table("Skills")?.Tables() ?? [])
@@ -53,11 +53,11 @@ public static partial class UespLogReader
             }
             if (data.Table("Inventory") is LuaTable inventory)
                 result.Inventories.Add(new(server, account, characterId, timestamp,
-                    ReadItems(inventory, isBank ? "Bank" : isCraftBag ? "CraftBag" : "Backpack", result.Diagnostics)));
+                    ReadItems(inventory, isBank ? "Bank" : isCraftBag ? "CraftBag" : "Backpack", result.Diagnostics), unique));
             if (data.Table("HouseStorage") is LuaTable storage)
                 foreach (var bag in storage.Tables().Where(x => x.Key.IsNumeric))
                     result.Inventories.Add(new(server, account, null, ReaderSupport.Time(storage.Integer("TimeStamp")),
-                        ReadItems(bag.Value, "HouseStorage:" + bag.Key.Value, result.Diagnostics)));
+                        ReadItems(bag.Value, "HouseStorage:" + bag.Key.Value, result.Diagnostics), unique));
         }
         if (result.CharacterStates.Count == 0 && result.Inventories.Count == 0)
             result.Diagnostics.Add("No character or account inventory observations found; enable uespLog character data saving in-game.");
@@ -72,7 +72,8 @@ public static partial class UespLogReader
             var match = InventoryRow().Match(text);
             var link = ItemLink.FindAll(text).FirstOrDefault();
             if (!match.Success || link is null) { diagnostics.Add($"Unreadable inventory row at {location}/{row.Key.Value}."); continue; }
-            items.Add(new(link, long.Parse(match.Groups[1].Value), location, Slot: long.Parse(row.Key.Value), Name: link.Label));
+            // UESP compacts nonempty bag slots into an array; its row number is not a physical bag slot.
+            items.Add(new(link, long.Parse(match.Groups[1].Value), location, Name: link.Label, SourceIndex: long.Parse(row.Key.Value)));
         }
         return items;
     }

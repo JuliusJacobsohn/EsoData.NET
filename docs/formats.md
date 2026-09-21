@@ -18,6 +18,8 @@ The implementation was checked against installed addon serializers and upstream 
 
 ## Lua and item links
 
+UESP's `SourceAccountId` retains its platform/server-qualified account identity. `Server` remains empty if no explicit server/world field was exported; do not join records by display name alone. Its compact inventory array indexes are `SourceIndex`, not physical bag `Slot` values.
+
 `SavedVariables.Parse` handles global data assignments, nested tables, string/integer keys, implicit arrays, booleans, nil, numbers, escaped UTF-8 strings, long strings and comments. It does not evaluate functions, identifiers as values, concatenation or arbitrary Lua expressions. `Raw` exposes fields not modeled by a reader. Unsupported executable addon source is not a SavedVariables document.
 
 `ItemLink` preserves all numeric payload fields, link style and label; extra future fields survive round trips. Character/item-instance IDs retain 64-bit precision. The link's item ID is not a set ID. Trait and equipment identity require metadata; level and quality alone do not identify a craftable piece.

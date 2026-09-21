@@ -3,12 +3,12 @@ using EsoData.Lua;
 
 namespace EsoData.Models;
 
-public sealed record CharacterReference(string Server, string Account, string Id, string? Name = null);
+public sealed record CharacterReference(string Server, string Account, string Id, string? Name = null, string? SourceAccountId = null);
 public sealed record SourceInfo(string Addon, string? Path = null, DateTimeOffset? FileWrittenAt = null, long? ApiVersion = null);
 public sealed record ItemStack(ItemLink Link, long Count, string Location, int? BagId = null,
-    long? Slot = null, string? Name = null, int? Quality = null);
+    long? Slot = null, string? Name = null, int? Quality = null, long? SourceIndex = null);
 public sealed record Inventory(string Server, string Account, string? CharacterId,
-    DateTimeOffset? ObservedAt, IReadOnlyList<ItemStack> Items);
+    DateTimeOffset? ObservedAt, IReadOnlyList<ItemStack> Items, string? SourceAccountId = null);
 public sealed record SkillAllocation(long AbilityId, int Rank, bool IsPassive = false, string? Name = null);
 public sealed record ChampionAllocation(long SkillId, int Points);
 public sealed record Attributes(int Health, int Magicka, int Stamina);
