@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="../../Version.props" />
+  <PropertyGroup>
+    <PackageId>EsoData.NET</PackageId>
+    <AssemblyName>EsoData</AssemblyName>
+    <RootNamespace>EsoData</RootNamespace>
+    <Authors>Julius Jacobsohn</Authors>
+    <Description>Read Elder Scrolls Online addon exports into C# models, resolve external game catalogs, and create CSPS and crafting imports.</Description>
+    <PackageTags>eso;elder-scrolls-online;addons;savedvariables;csps</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/JuliusJacobsohn/EsoData.NET</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>https://github.com/JuliusJacobsohn/EsoData.NET</PackageProjectUrl>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="../../README.md" Pack="true" PackagePath="/" />
+    <None Include="../../LICENSE" Pack="true" PackagePath="/" />
+  </ItemGroup>
+</Project>
