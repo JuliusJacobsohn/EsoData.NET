@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace EsoData.Catalogs;
 
-/// <summary>Imports exportJson.php's minedItemSummary/minedSkills tables. HTTP and caching remain caller-owned.</summary>
+/// <summary>Imports exportJson.php's minedItemSummary/minedSkills/minedSkillLines tables. HTTP and caching remain caller-owned.</summary>
 public static class UespCatalog
 {
     public static GameCatalog Parse(string json, string? sourceUrl = null, string? version = null)
@@ -38,8 +38,18 @@ public static class UespCatalog
                         Integer(row, "craftedId"), Text(row, "skillLine"));
                 }
             }
+            else if (table.Name.StartsWith("minedSkillLines", StringComparison.Ordinal))
+            {
+                recognized = true;
+                foreach (var row in table.Value.EnumerateArray())
+                {
+                    var id = Integer(row, "id") ?? throw new FormatException("UESP skill-line id is missing.");
+                    var name = Text(row, "name") ?? throw new FormatException("UESP skill-line name is missing.");
+                    catalog.SkillLines[id] = new(id, name, Text(row, "fullName"), Text(row, "classType"));
+                }
+            }
         }
-        if (!recognized) throw new FormatException("No minedItemSummary or minedSkills tables found in the UESP export.");
+        if (!recognized) throw new FormatException("No recognized UESP catalog table found in the export.");
         return catalog;
     }
     private static string? Text(JsonElement row, string name) => row.TryGetProperty(name, out var value) && value.ValueKind != JsonValueKind.Null ? value.ToString() : null;

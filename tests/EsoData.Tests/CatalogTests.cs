@@ -38,6 +38,16 @@ public class CatalogTests
     }
 
     [Fact]
+    public void UespSkillLinesKeepCurrentClassIdsOutOfCode()
+    {
+        var catalog = UespCatalog.Parse("""
+            {"minedSkillLines":[{"id":"7","name":"Ardent Flame","fullName":"Dragonknight::Ardent Flame","classType":"Dragonknight"}]}
+            """);
+        Assert.Equal("Dragonknight", catalog.SkillLines[7].ClassType);
+        Assert.Equal(7, GameCatalog.FromJson(catalog.ToJson()).SkillLines[7].Id);
+    }
+
+    [Fact]
     public void MergedCatalogResolvesOneCraftedItemFromMembershipAndMetadata()
     {
         var membership = LibSetsCatalog.Parse("""

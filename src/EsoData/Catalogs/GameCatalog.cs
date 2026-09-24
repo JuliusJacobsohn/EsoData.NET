@@ -31,6 +31,7 @@ public sealed record CraftedItemSelector(long SetId, int? EquipType = null, int?
 }
 public sealed record SkillDefinition(long Id, string? Name = null, long? BaseAbilityId = null,
     int? Rank = null, int? Morph = null, bool? IsPassive = null, long? CraftedId = null, string? SkillLine = null);
+public sealed record SkillLineDefinition(long Id, string Name, string? FullName = null, string? ClassType = null);
 public sealed record SetDefinition(long Id, IReadOnlyDictionary<string, string> Names, IReadOnlyList<long> ItemIds);
 public sealed record CollectionPiece(long SetId, long PieceId, long SlotMask);
 public sealed record ResearchTrait(int Index, int CraftingType, int LineIndex, int TraitIndex, int TraitType, string? Name = null);
@@ -46,6 +47,7 @@ public sealed class GameCatalog
     public List<CatalogSource> Sources { get; set; } = [];
     public Dictionary<long, ItemDefinition> Items { get; set; } = [];
     public Dictionary<long, SkillDefinition> Skills { get; set; } = [];
+    public Dictionary<long, SkillLineDefinition> SkillLines { get; set; } = [];
     public Dictionary<long, SetDefinition> Sets { get; set; } = [];
     public List<CollectionPiece> CollectionPieces { get; set; } = [];
     public List<ResearchTrait> ResearchTraits { get; set; } = [];
@@ -74,6 +76,7 @@ public sealed class GameCatalog
                 merged.Items[item.Id] = merged.Items.TryGetValue(item.Id, out var existing) ? Merge(existing, item) : item;
             foreach (var skill in catalog.Skills.Values)
                 merged.Skills[skill.Id] = merged.Skills.TryGetValue(skill.Id, out var existing) ? Merge(existing, skill) : skill;
+            foreach (var line in catalog.SkillLines.Values) merged.SkillLines[line.Id] = line;
             merged.CollectionPieces.AddRange(catalog.CollectionPieces.Where(x => !merged.CollectionPieces.Contains(x)));
             merged.ResearchTraits.AddRange(catalog.ResearchTraits.Where(x => !merged.ResearchTraits.Contains(x)));
             merged.ResearchSignature = catalog.ResearchSignature ?? merged.ResearchSignature;
