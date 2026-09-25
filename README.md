@@ -9,6 +9,8 @@
 
 A standalone **.NET 10** library for reading Elder Scrolls Online addon data into C# models and generating build and crafting imports. No runtime dependencies, database, MCP server, game process access, or network connection is required for local formats. Use it from a console app, desktop app, web backend, or your own MCP server.
 
+The [account-first replacement architecture](docs/account-architecture.md) defines the next design: a mutable account graph, shared build analysis and partial exports. It is a design document; the API examples below describe the current release.
+
 ## Install
 
 ```shell

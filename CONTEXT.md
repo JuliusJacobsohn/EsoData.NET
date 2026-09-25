@@ -1,8 +1,24 @@
 # ESO addon data
 
-Structured observations and portable import/export formats for consumers of ESO addon saves.
+Characters, ownership, progression and build configurations represented by ESO addon data.
 
 ## Language
+
+**Account**: One ESO account's characters and shared possessions on one server. Another account or server is a separate ownership pool.
+
+**Character**: An individual game character identified within its account/server. Its display name is not its identity.
+
+**Progression**: A character's earned levels, skill and morph progress, unlocks and crafting knowledge. Progression is distinct from how its points are currently allocated.
+
+**Build**: A configuration of skill purchases, passive ranks, bars, attributes, champion points, equipment and consumables. The same configuration can describe an observed setup or a proposal; a proposal does not establish that it has been applied.
+
+**Target**: A desired build and its explicit requirements, including any alternatives and optional branches.
+
+**Source coverage**: The characters, storage locations and data sections a source observed, including their available scan times and completeness. A recently saved source need not have recently observed every character.
+
+**Item instance**: A particular owned item or stack at a location. Its catalog definition is not its identity, and a collection unlock is not an owned instance.
+
+**Catalog**: Shared definitions of game items, sets, skills and their identifiers, independent of any account's possessions or progression.
 
 **Observation**: State recorded by an addon at an available timestamp. It does not establish current live state.
 
