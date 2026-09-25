@@ -1,5 +1,7 @@
 # EsoData.NET
 
+Guide targets can be stored as `BuildPlan.Target` (`GuideSetup`): named bar abilities with scribing recipes, passive priorities, equipment trait alternatives, CP selections, masteries, attributes, Mundus and consumables. `GuideAnalysis.Compare` resolves available observations without fabricating numeric IDs or point allocations absent from the source. This declarative target is separate from an executable `CharacterBuild`; unknown source/catalog coverage remains explicit.
+
 [![CI](https://github.com/JuliusJacobsohn/EsoData.NET/actions/workflows/ci.yml/badge.svg)](https://github.com/JuliusJacobsohn/EsoData.NET/actions/workflows/ci.yml)
 [![NuGet](https://img.shields.io/nuget/v/EsoData.NET.svg)](https://www.nuget.org/packages/EsoData.NET)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)

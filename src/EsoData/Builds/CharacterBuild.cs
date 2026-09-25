@@ -54,6 +54,7 @@ public sealed class EquipmentChoice
 }
 public sealed class BuildPlan
 {
+    public GuideSetup? Target { get; set; }
     public string Id { get; set; } = "";
     public string Name { get; set; } = "";
     public string AccountKey { get; set; } = "";

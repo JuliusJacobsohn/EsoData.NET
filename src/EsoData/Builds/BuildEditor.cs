@@ -6,6 +6,7 @@ namespace EsoData.Builds;
 /// <summary>One atomic typed patch. Omitted properties are untouched; null dictionary values remove entries.</summary>
 public sealed class BuildPatch
 {
+    public GuideSetup? Target { get; set; }
     public Dictionary<string, SkillPurchase?>? Skills { get; set; }
     public Dictionary<string, string?>? BarSlots { get; set; }
     public Dictionary<long, int?>? ChampionPoints { get; set; }
@@ -33,6 +34,7 @@ public static class BuildEditor
     public static BuildPlan Apply(BuildPlan original, BuildPatch patch, GameCatalog catalog)
     {
         var plan = AccountJson.Clone(original); var build = plan.Build;
+        if (patch.Target is not null) { GuideSetupValidation.Validate(patch.Target); plan.Target = AccountJson.Clone(patch.Target); }
         if (patch.Skills is not null)
         {
             foreach (var (selector, purchase) in patch.Skills)
