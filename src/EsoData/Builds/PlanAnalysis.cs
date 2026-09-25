@@ -11,21 +11,46 @@ public sealed record MaterialShortage(long ItemId, long Needed, long Owned, long
 public sealed record CraftingReport(IReadOnlyList<MaterialShortage> Materials, IReadOnlyList<string> Unknown,
     IReadOnlyList<string> Unmet);
 public sealed record BuildDifference(string Path, object? Current, object? Desired);
+public sealed record ActiveSetCount(string Bar, long SetId, int Pieces);
 
 public static class PlanAnalysis
 {
+    public static IReadOnlyList<ActiveSetCount> SetCounts(CharacterBuild build)
+    {
+        var result = new List<ActiveSetCount>();
+        foreach (var (bar, main, off) in new[] { ("front", 4, 5), ("back", 20, 21) })
+        {
+            var counts = new Dictionary<long, int>();
+            foreach (var (slot, item) in build.Equipment)
+            {
+                if (slot is 4 or 5 or 20 or 21 && slot != main && slot != off || item.SetId is not > 0) continue;
+                var weight = slot == main && item.Type is 4 or 5 or 6 or 8 or 9 or 12 or 13 or 15 ? 2 : 1;
+                if (weight == 2 && build.Equipment.ContainsKey(off)) throw new ArgumentException($"{bar}: two-handed weapon and off-hand both selected.");
+                counts[item.SetId.Value] = counts.GetValueOrDefault(item.SetId.Value) + weight;
+            }
+            result.AddRange(counts.Select(c => new ActiveSetCount(bar, c.Key, c.Value)));
+        }
+        return result;
+    }
     public static IReadOnlyList<RequirementProgress> Requirements(EsoAccount account, BuildPlan plan, GameCatalog catalog)
     {
         BuildEditor.ValidateRequirements(plan.Requirements);
         var character = account.Character(plan.CharacterId);
         string Status(bool? value) => value switch { true => "satisfied", false => "unmet", _ => "unknown" };
+        bool? SkillState(BuildRequirement r)
+        {
+            var observed = character.Progress.Skills?.Where(s => BuildAnalysis.Family(s.AbilityId, catalog) == BuildAnalysis.Family(r.GameId ?? 0, catalog)).ToArray();
+            if (observed is null || observed.Length == 0) return null;
+            var morph = catalog.Skills.GetValueOrDefault(r.GameId ?? 0)?.Morph;
+            return observed.Any(s => s.Rank >= r.Amount && (s.IsPassive || morph is null || s.Morph == morph));
+        }
         var states = plan.Requirements.ToDictionary(r => r.Id, r => Status(r.Kind switch
         {
             RequirementKind.Manual => r.Completed,
-            RequirementKind.Skill => character.Progress.Skills is null ? null : character.Progress.Skills.Any(s =>
-                BuildAnalysis.Family(s.AbilityId, catalog) == BuildAnalysis.Family(r.GameId ?? 0, catalog) && s.Rank >= r.Amount) ? true : null,
+            RequirementKind.Skill => SkillState(r),
             RequirementKind.Allocation => character.Build.Sections.HasFlag(BuildSections.Skills)
-                ? character.Build.Skills.Any(s => BuildAnalysis.Family(s.Key, catalog) == BuildAnalysis.Family(r.GameId ?? 0, catalog) && s.Value.Rank >= r.Amount) : null,
+                ? character.Build.Skills.Any(s => BuildAnalysis.Family(s.Key, catalog) == BuildAnalysis.Family(r.GameId ?? 0, catalog) && s.Value.Rank >= r.Amount
+                    && (s.Value.IsPassive || catalog.Skills.GetValueOrDefault(r.GameId ?? 0)?.Morph is not int morph || s.Value.Morph == morph)) : null,
             RequirementKind.SkillLine => character.Progress.SkillLines?.TryGetValue(r.Category ?? "", out var rank) == true ? rank >= r.Amount : null,
             RequirementKind.Knowledge => character.Progress.Knowledge.TryGetValue(r.Category ?? "", out var knowledge)
                 ? knowledge.GetValueOrDefault(r.GameId ?? 0) : null,
@@ -111,6 +136,7 @@ public static class PlanAnalysis
                     Add("championSlots", current.ChampionSlots, desired.ChampionSlots); break;
                 case BuildSections.Mundus: Add("mundus", current.Mundus, desired.Mundus); break;
                 case BuildSections.Equipment:
+                    foreach (var removed in current.Equipment.Keys.Except(desired.Equipment.Keys)) Add($"equipment/{removed}", current.Equipment[removed], null);
                     foreach (var (slot, target) in desired.Equipment)
                     {
                         var actual = current.Equipment.GetValueOrDefault(slot);

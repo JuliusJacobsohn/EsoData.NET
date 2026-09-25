@@ -94,4 +94,30 @@ public class AccountBuildTests
         Assert.Equal(2, Assert.Single(report.Materials).Short); Assert.Empty(report.Unknown);
         Assert.NotEmpty(PlanAnalysis.Crafting(account, [new() { ItemId = 100, Quality = 5 }], "1", catalog).Unknown);
     }
+    [Fact]
+    public void MorphRequirementsDoNotTreatAMaxedBaseAsAMaxedMorph()
+    {
+        var a = new EsoAccount { Characters = [new() { Id = "1", Progress = new() { Skills = [new(10, "Base", 4, false, true, 0)] } }] };
+        var p = new BuildPlan { CharacterId = "1", Requirements = [new() { Id = "morph", Kind = RequirementKind.Skill, GameId = 11, Amount = 4 }] };
+        Assert.Equal("unmet", Assert.Single(PlanAnalysis.Requirements(a, p, Catalog())).Status);
+    }
+    [Fact]
+    public void SetCountsDoNotCountBothWeaponBarsAndEmptyEquipmentClearsSlots()
+    {
+        var b = new CharacterBuild { Sections = BuildSections.Equipment, Equipment = new()
+        { [4] = new() { SetId = 1, Type = 12 }, [20] = new() { SetId = 2, Type = 13 }, [0] = new() { SetId = 1, Type = 3 } } };
+        Assert.Contains(PlanAnalysis.SetCounts(b), c => c.Bar == "front" && c.SetId == 1 && c.Pieces == 3);
+        Assert.Contains(PlanAnalysis.SetCounts(b), c => c.Bar == "back" && c.SetId == 2 && c.Pieces == 2);
+        Assert.Equal(3, PlanAnalysis.Compare(b, new(), BuildSections.Equipment, Catalog()).Count);
+    }
+    [Fact]
+    public void SourceFreeSkillsDoNotInventSpentOrRefundablePoints()
+    {
+        var c = new EsoCharacter { Progress = new() { TotalSkillPoints = 20, UnspentSkillPoints = 10 },
+            Build = new() { Sections = BuildSections.Skills, Skills = new() { [20] = new() { IsPassive = true, Rank = 12 } } } };
+        var report = BuildAnalysis.Validate(c, c.Build, Catalog());
+        Assert.Equal(10, report.SkillPoints!.CurrentAllocation);
+        Assert.Equal(10, report.SkillPoints.Desired);
+        Assert.Null(report.SkillPoints.Refundable);
+    }
 }

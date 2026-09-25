@@ -16,6 +16,8 @@ public sealed class BuildPatch
     public List<BuildRequirement>? Requirements { get; set; }
     public List<GuideReference>? Guides { get; set; }
     public List<CraftingOrder>? Crafting { get; set; }
+    public List<EsoData.Formats.CraftedSkill>? ScribedSkills { get; set; }
+    public long? Mundus { get; set; }
     public BuildSections? Sections { get; set; }
 }
 public static class BuildEditor
@@ -71,6 +73,8 @@ public static class BuildEditor
         if (patch.Requirements is not null) plan.Requirements = AccountJson.Clone(patch.Requirements);
         if (patch.Guides is not null) plan.Guides = AccountJson.Clone(patch.Guides);
         if (patch.Crafting is not null) plan.Crafting = AccountJson.Clone(patch.Crafting);
+        if (patch.ScribedSkills is not null) { build.ScribedSkills = AccountJson.Clone(patch.ScribedSkills); build.Sections |= BuildSections.Skills; }
+        if (patch.Mundus.HasValue) { build.Mundus = patch.Mundus; build.Sections |= BuildSections.Mundus; }
         if (patch.Sections.HasValue) build.Sections = patch.Sections.Value;
         ValidateRequirements(plan.Requirements);
         return plan;

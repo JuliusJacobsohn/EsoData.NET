@@ -5,7 +5,7 @@ namespace EsoData.Builds;
 
 public sealed record BuildFinding(string Severity, string Code, string Path, string Message);
 public sealed record PointBudget(int? Total, int Desired, int? Remaining, int? CurrentlyUnspent, int CurrentAllocation,
-    int IncrementalCost, int Refundable);
+    int? IncrementalCost, int? Refundable);
 public sealed class BuildReport
 {
     public PointBudget? SkillPoints { get; set; }
@@ -33,11 +33,19 @@ public static class BuildAnalysis
             var incremental = desired.Sum(s => Math.Max(0, s.Value - existing.GetValueOrDefault(s.Key)));
             var refundable = existing.Sum(s => Math.Max(0, s.Value - desired.GetValueOrDefault(s.Key)));
             var total = character.Progress.TotalSkillPoints;
-            report.SkillPoints = new(total, build.SkillPointCost, total - build.SkillPointCost,
-                character.Progress.UnspentSkillPoints, current.SkillPointCost, incremental, refundable);
+            var observedSpent = total - character.Progress.UnspentSkillPoints;
+            var costsReconcile = observedSpent is null || observedSpent == current.SkillPointCost;
+            var unchanged = current.Skills.OrderBy(s => s.Key).Select(s => (s.Key, s.Value.IsPassive, s.Value.Rank, s.Value.Morph))
+                .SequenceEqual(build.Skills.OrderBy(s => s.Key).Select(s => (s.Key, s.Value.IsPassive, s.Value.Rank, s.Value.Morph)));
+            var desiredCost = unchanged && observedSpent.HasValue ? observedSpent.Value : build.SkillPointCost;
+            report.SkillPoints = new(total, desiredCost, total - desiredCost,
+                character.Progress.UnspentSkillPoints, observedSpent ?? current.SkillPointCost,
+                costsReconcile ? incremental : null, costsReconcile ? refundable : null);
+            if (!costsReconcile && !unchanged) Add("unknown", "point-cost-coverage", "skills",
+                "Source includes automatically granted skills without cost metadata. Incremental/refundable costs cannot be established; desired total uses the listed ordinary purchases.");
             if (total is null) Add("unknown", "skill-budget", "skills", "Total skill-point budget is unobserved.");
-            else if (build.SkillPointCost + constraints.ReserveSkillPoints > total)
-                Add("error", "skill-budget", "skills", $"Requires {build.SkillPointCost} + {constraints.ReserveSkillPoints} reserved; total is {total}.");
+            else if (desiredCost + constraints.ReserveSkillPoints > total)
+                Add("error", "skill-budget", "skills", $"Requires {desiredCost} + {constraints.ReserveSkillPoints} reserved; total is {total}.");
             if (constraints.ReserveSkillPoints < 0) Add("error", "reserve", "constraints", "Reserve must be nonnegative.");
             if (!constraints.FullRespec && incremental > character.Progress.UnspentSkillPoints)
                 Add("unmet", "respec-required", "skills", "Incremental purchases exceed unspent points; refund or respec first.");
@@ -114,6 +122,8 @@ public static class BuildAnalysis
 
         void CheckChampion()
         {
+            var observedAllocation = current.Sections.HasFlag(BuildSections.ChampionPoints)
+                && current.ChampionPoints.Where(p => p.Value > 0).OrderBy(p => p.Key).SequenceEqual(build.ChampionPoints.Where(p => p.Value > 0).OrderBy(p => p.Key));
             if (build.ChampionSlots.Length != 12) Add("error", "cp-slots", "championSlots", "Twelve CP slot positions are required.");
             if (build.ChampionPoints.Any(p => p.Key <= 0 || p.Value < 0)) Add("error", "cp-points", "championPoints", "CP IDs must be positive and points nonnegative.");
             if (character.Progress.TotalChampionPoints is int total && build.ChampionPoints.Values.Sum() > total)
@@ -122,7 +132,7 @@ public static class BuildAnalysis
             foreach (var (id, points) in build.ChampionPoints.Where(p => p.Value > 0))
             {
                 if (!catalog.ChampionStars.TryGetValue(id, out var star))
-                { Add("unknown", "cp-rules", $"championPoints/{id}", "CP discipline/cap/prerequisite rules are not in the catalog."); continue; }
+                { if (!observedAllocation) Add("unknown", "cp-rules", $"championPoints/{id}", "CP discipline/cap/prerequisite rules are not in the catalog."); continue; }
                 if (points > star.MaximumPoints) Add("error", "cp-cap", $"championPoints/{id}", "Allocation exceeds star cap.");
                 foreach (var need in star.Prerequisites ?? new Dictionary<long, int>())
                     if (build.ChampionPoints.GetValueOrDefault(need.Key) < need.Value) Add("error", "cp-prerequisite", $"championPoints/{id}", $"Requires {need.Value} points in {need.Key}.");
@@ -137,6 +147,8 @@ public static class BuildAnalysis
                 if (catalog.ChampionStars.TryGetValue(id, out var star) && (!star.Slottable || star.Discipline != disciplines[i / 4]
                     || build.ChampionPoints.GetValueOrDefault(id) < star.MinimumSlottablePoints))
                     Add("error", "cp-slot", $"championSlots/{i}", "Star cannot be slotted here at the selected allocation.");
+                if (!catalog.ChampionStars.ContainsKey(id) && current.ChampionSlots.ElementAtOrDefault(i) != id)
+                    Add("unknown", "cp-slot-rules", $"championSlots/{i}", "New slot assignment requires missing star rules.");
             }
             if (build.ChampionSlots.Where(x => x.HasValue).Distinct().Count() != build.ChampionSlots.Count(x => x.HasValue))
                 Add("error", "duplicate-cp-slot", "championSlots", "A star is slotted more than once.");

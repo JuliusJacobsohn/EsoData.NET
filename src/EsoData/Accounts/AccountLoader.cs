@@ -26,6 +26,10 @@ public static class AccountLoader
                     var character = Character(account, state.Character);
                     var source = Source(account, data.Source);
                     if (!Choose(account, "character", character.Id, state.ObservedAt, source, 50)) continue;
+                    character.Progress = new();
+                    character.Build = new();
+                    foreach (var priorSource in account.Sources)
+                        priorSource.Coverage.RemoveAll(c => c.CharacterId == character.Id && c.Section is "character" or "skills" or "bars" or "championPoints" or "equipment");
                     character.Level = state.Level; character.Class = state.Class; character.Race = state.Race;
                     character.Progress.TotalSkillPoints = state.TotalSkillPoints;
                     character.Progress.UnspentSkillPoints = state.UnspentSkillPoints;
@@ -104,7 +108,8 @@ public static class AccountLoader
                     foreach (var category in knowledge.Categories)
                     {
                         if (!Choose(account, "knowledge/" + category.Key, character.Id, knowledge.ObservedAt, source, 100)) continue;
-                        character.Progress.Knowledge[category.Key] = category.Value.ToDictionary(e => e.ItemId, e => e.Known);
+                        character.Progress.Knowledge[category.Key] = category.Value.Where(e => e.ItemId > 0).GroupBy(e => e.ItemId)
+                            .ToDictionary(g => g.Key, g => g.Select(e => e.Known).Distinct().Count() == 1 ? g.First().Known : null);
                         source.Coverage.Add(new("knowledge/" + category.Key, character.Id, null, knowledge.ObservedAt,
                             category.Value.All(e => e.Known.HasValue)));
                     }
@@ -154,6 +159,11 @@ public static class AccountLoader
             EsoAccount Account(string world, string name, string? characterId = null)
             {
                 var server = NormalizeServer(world);
+                // UESP shared-storage records may identify the account by its world-qualified name.
+                var at = name.IndexOf('@');
+                if (at > 0 && (name.StartsWith("EU Megaserver-PC", StringComparison.OrdinalIgnoreCase)
+                    || name.StartsWith("NA Megaserver-PC", StringComparison.OrdinalIgnoreCase)))
+                { if (server.Length == 0) server = name[..2].ToUpperInvariant(); name = name[at..]; }
                 if (string.IsNullOrWhiteSpace(server))
                 {
                     var matches = result.Accounts.Where(a => string.Equals(a.Name, name, StringComparison.OrdinalIgnoreCase)
