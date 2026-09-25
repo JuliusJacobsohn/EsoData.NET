@@ -9,7 +9,45 @@
 
 A standalone **.NET 10** library for reading Elder Scrolls Online addon data into C# models and generating build and crafting imports. No runtime dependencies, database, MCP server, game process access, or network connection is required for local formats. Use it from a console app, desktop app, web backend, or your own MCP server.
 
-The [account-first replacement architecture](docs/account-architecture.md) defines the next design: a mutable account graph, shared build analysis and partial exports. It is a design document; the API examples below describe the current release.
+The main API loads a mutable account graph, edits typed build plans, compares them with observed characters, and exports selected sections. The lower-level addon readers remain available for adapter development. See [architecture and data boundaries](docs/account-architecture.md).
+
+## Load, edit, compare and export
+
+```csharp
+using EsoData.Accounts;
+using EsoData.Builds;
+using EsoData.Catalogs;
+
+var catalog = GameCatalog.Read("catalog.json");
+var loaded = AccountLoader.Load([new AccountInput(savedVariablesPath)], catalog);
+var account = loaded.Accounts.Single(a => a.Name == "@Example" && a.Server == "EU");
+var character = account.Character("Example Character");
+
+var plan = new BuildPlan
+{
+    Name = "Exploration", AccountKey = account.Key, CharacterId = character.Id,
+    Baseline = character.Build.DeepClone(), Build = character.Build.DeepClone()
+};
+plan = BuildEditor.Apply(plan, new BuildPatch
+{
+    Attributes = new() { Health = 0, Magicka = 64, Stamina = 0 }
+}, catalog);
+
+var validation = BuildAnalysis.Validate(character, plan.Build, catalog,
+    plan.Constraints, BuildSections.Attributes);
+var differences = PlanAnalysis.Compare(character.Build, plan.Build,
+    BuildSections.Attributes, catalog);
+if (validation.Valid)
+    Console.WriteLine(BuildCodec.Export(plan.Build, catalog, BuildSections.Attributes));
+```
+
+`EsoAccount` contains characters, their progression/builds/saved profiles/storage, shared storage, set collection masks, and central source coverage. `account.Inventory` enumerates the account's selected storage without copying it into every character. `DeepClone()` creates an independent editable graph. `AccountJson` round-trips typed graphs and plans; storage is caller-owned.
+
+`BuildEditor` accepts batched typed patches, including name/ID skill selectors, individual bar slots, CP, equipment, scribing, guide references and target requirements. An invalid batch does not modify the original plan. `PlanAnalysis` exposes requirements, equipment candidates, per-bar set counts, exact-catalog crafting shortages and meaningful build differences. `BuildCodec.Import(CspsBuild.Parse(text))` turns a saved native import into a typed build; `Export` requires explicit sections.
+
+`Valid` means no known structural errors; `ReadyNow` additionally requires no unmet or unknown requirements. UESP records purchased skills, not complete progression of every unpurchased morph. Automatically granted skill costs are not fully described by that source; when costs do not reconcile with the observed spent total, incremental/refundable costs remain null with a diagnostic. CP cap/prerequisite checks and exact crafting bills require those definitions in the supplied catalog. Missing metadata is reported rather than guessed. Neither successful validation nor a saved CSPS profile proves application in game.
+
+The library performs no network requests and never writes addon files. Hosts can reload sources on every operation and persist account/plan JSON in SQLite, files or their preferred storage. `samples/EsoData.Benchmark` measures read/parse costs without printing account contents.
 
 ## Install
 

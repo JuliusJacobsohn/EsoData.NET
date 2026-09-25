@@ -1,6 +1,6 @@
 # Account-first architecture
 
-Design decision, 2026-09-25. This is the replacement design, not a description of the released API. Compatibility with the existing public model is not a requirement. The useful parsers and format tests may survive; the current layering does not constrain the replacement.
+Architecture decision, 2026-09-25. The account/build API is implemented in 1.1.0; this document also records the broader domain intent. Actual source coverage and limitations are described in the README. Compatibility with the former MCP projections is not a requirement.
 
 ## What the library is for
 
@@ -114,7 +114,7 @@ Format validation and round-trip checks are not an in-game application test. Com
 
 Default: reload local files for each requested account operation. No account cache, file watcher, projection database or refresh scheduler. An operation loads once and runs all its queries against that object. Remote catalog downloads are a separate explicit update operation, not repeated with every request.
 
-The host may persist proposed builds as JSON. This is user work, not a cache. Saving an account copy is supported for explicit offline usage, with its original source timestamps; it is not silently substituted when live loading fails.
+The host may persist both refreshed accounts and authored builds as JSON in SQLite. These are separate records: a refresh never overwrites a plan. The MCP does this on every relevant request. SQLite is persistence, not a prerequisite for the library or a reason to hide the typed graph. Explicit offline usage retains original source timestamps and is not silently substituted when live loading fails.
 
 On 2026-09-25 the read-only benchmark on the developer's local data measured all six account readers at 75.879 ms median (seven samples after a warmup), LibSets separately at 23.372 ms, and CSPS text round-tripping all saved profiles at 0.007 ms. The existing forced MCP refresh took 3.362 s including its additional work. These are different workloads; the comparison does not isolate SQLite overhead or benchmark the future merger. They justify measuring a direct loader before adding caching.
 
