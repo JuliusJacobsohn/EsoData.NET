@@ -30,7 +30,8 @@ public sealed record CraftedItemSelector(long SetId, int? EquipType = null, int?
     }
 }
 public sealed record SkillDefinition(long Id, string? Name = null, long? BaseAbilityId = null,
-    int? Rank = null, int? Morph = null, bool? IsPassive = null, long? CraftedId = null, string? SkillLine = null);
+    int? Rank = null, int? Morph = null, bool? IsPassive = null, long? CraftedId = null, string? SkillLine = null,
+    bool? IsUltimate = null, int? RequiredLineRank = null);
 public sealed record SkillLineDefinition(long Id, string Name, string? FullName = null, string? ClassType = null);
 public sealed record SetDefinition(long Id, IReadOnlyDictionary<string, string> Names, IReadOnlyList<long> ItemIds);
 public sealed record CollectionPiece(long SetId, long PieceId, long SlotMask);
@@ -48,6 +49,8 @@ public sealed class GameCatalog
     public Dictionary<long, ItemDefinition> Items { get; set; } = [];
     public Dictionary<long, SkillDefinition> Skills { get; set; } = [];
     public Dictionary<long, SkillLineDefinition> SkillLines { get; set; } = [];
+    public Dictionary<long, ChampionDefinition> ChampionStars { get; set; } = [];
+    public List<CraftingRecipe> CraftingRecipes { get; set; } = [];
     public Dictionary<long, SetDefinition> Sets { get; set; } = [];
     public List<CollectionPiece> CollectionPieces { get; set; } = [];
     public List<ResearchTrait> ResearchTraits { get; set; } = [];
@@ -77,6 +80,8 @@ public sealed class GameCatalog
             foreach (var skill in catalog.Skills.Values)
                 merged.Skills[skill.Id] = merged.Skills.TryGetValue(skill.Id, out var existing) ? Merge(existing, skill) : skill;
             foreach (var line in catalog.SkillLines.Values) merged.SkillLines[line.Id] = line;
+            foreach (var star in catalog.ChampionStars) merged.ChampionStars[star.Key] = star.Value;
+            merged.CraftingRecipes.AddRange(catalog.CraftingRecipes);
             merged.CollectionPieces.AddRange(catalog.CollectionPieces.Where(x => !merged.CollectionPieces.Contains(x)));
             merged.ResearchTraits.AddRange(catalog.ResearchTraits.Where(x => !merged.ResearchTraits.Contains(x)));
             merged.ResearchSignature = catalog.ResearchSignature ?? merged.ResearchSignature;
@@ -123,5 +128,6 @@ public sealed class GameCatalog
     private static SkillDefinition Merge(SkillDefinition existing, SkillDefinition later) => new(later.Id,
         later.Name ?? existing.Name, later.BaseAbilityId ?? existing.BaseAbilityId, later.Rank ?? existing.Rank,
         later.Morph ?? existing.Morph, later.IsPassive ?? existing.IsPassive, later.CraftedId ?? existing.CraftedId,
-        later.SkillLine ?? existing.SkillLine);
+        later.SkillLine ?? existing.SkillLine, later.IsUltimate ?? existing.IsUltimate,
+        later.RequiredLineRank ?? existing.RequiredLineRank);
 }
