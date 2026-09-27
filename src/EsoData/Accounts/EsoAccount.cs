@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using EsoData.Addons;
 using EsoData.Builds;
 using EsoData.Models;
+using EsoData.Pricing;
 
 namespace EsoData.Accounts;
 
@@ -27,6 +28,7 @@ public sealed class EsoAccount
     public List<Storage> SharedStorage { get; set; } = [];
     public Dictionary<long, long>? SetCollections { get; set; }
     public List<AccountSource> Sources { get; set; } = [];
+    public PriceSource? PriceSource { get; set; }
     [JsonIgnore] public string Key => Server.ToUpperInvariant() + "/" + Name.ToUpperInvariant();
     [JsonIgnore] public IEnumerable<OwnedItem> Inventory => SharedStorage.Concat(Characters.SelectMany(c => c.Storage)).SelectMany(s => s.Items);
     public EsoAccount DeepClone() => AccountJson.Clone(this);
@@ -91,6 +93,11 @@ public sealed class OwnedItem
     public int? WeaponType { get; set; }
     public int? EquipType { get; set; }
     public bool? CharacterBound { get; set; }
+    public int? SpecializedItemType { get; set; }
+    public int? RequiredLevel { get; set; }
+    public int? RequiredChampionPoints { get; set; }
+    public ItemPrice Price { get; set; } = new(PriceMatchStatus.CatalogUnavailable);
+    [JsonIgnore] public decimal? EstimatedStackPrice => Price.EstimatedUnitPrice * Count;
 }
 public sealed class AccountSource
 {

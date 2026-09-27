@@ -10,7 +10,8 @@ namespace EsoData.Accounts;
 /// <summary>Reads all configured sources and assembles independent mutable account graphs. Never writes game files.</summary>
 public static class AccountLoader
 {
-    public static AccountLoadResult Load(IEnumerable<AccountInput> inputs, GameCatalog? catalog = null)
+    public static AccountLoadResult Load(IEnumerable<AccountInput> inputs, GameCatalog? catalog = null,
+        IEnumerable<EsoData.Pricing.PriceCatalog>? prices = null)
     {
         var result = new AccountLoadResult();
         var winners = new Dictionary<string, (DateTimeOffset? Scan, DateTimeOffset? File, int Priority)>();
@@ -207,6 +208,10 @@ public static class AccountLoader
                 }
             }
         }
+        if (prices is not null)
+            foreach (var market in prices)
+                foreach (var account in result.Accounts.Where(a => NormalizeServer(a.Server) == market.Source.Region))
+                    market.Associate(account);
         return result;
 
         bool Choose(EsoAccount account, string section, string scope, DateTimeOffset? scan, AccountSource source, int priority)
