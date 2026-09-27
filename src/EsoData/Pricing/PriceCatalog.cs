@@ -1,4 +1,5 @@
 using EsoData.Accounts;
+using System.Text.Json.Serialization;
 
 namespace EsoData.Pricing;
 
@@ -13,6 +14,7 @@ public sealed record PriceStatistics(decimal? Average, decimal? Minimum, decimal
     public decimal? SuggestedMaximum => Suggested * 1.25m;
 }
 public sealed record PriceEntry(PriceKey Key, PriceStatistics Statistics);
+[JsonConverter(typeof(JsonStringEnumConverter<PriceMatchStatus>))]
 public enum PriceMatchStatus { Matched, CatalogUnavailable, UnknownItem, NotListed, NeedsMetadata }
 public sealed record ItemPrice(PriceMatchStatus Status, PriceEntry? Entry = null, string? Detail = null,
     int Candidates = 0)
@@ -32,6 +34,9 @@ public sealed class PriceCatalog
     public List<string> Diagnostics { get; set; } = [];
 
     public ItemPrice Match(OwnedItem item) => new PriceMatcher(this).Match(item);
+    /// <summary>Exact TTC-key lookup, including all potion and master-writ dimensions, without an account.</summary>
+    public PriceEntry? Find(PriceKey key) => Entries.SingleOrDefault(e => e.Key.TtcItemId == key.TtcItemId
+        && e.Key.Quality == key.Quality && e.Key.Level == key.Level && e.Key.Trait == key.Trait && e.Key.Extra.SequenceEqual(key.Extra));
     /// <summary>Associates every storage item, including bank, character bags, equipped storage and craft bag.</summary>
     public void Associate(EsoAccount account)
     {

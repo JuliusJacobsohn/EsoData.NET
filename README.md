@@ -57,6 +57,37 @@ The library performs no network requests and never writes addon files. Hosts can
 dotnet add package EsoData.NET
 ```
 
+## Local TTC prices
+
+```csharp
+using EsoData.Pricing;
+
+// The entire downloaded regional catalog, not just account-owned items.
+var market = TtcPriceReader.Read(Path.Combine(addonsDirectory, "TamrielTradeCentre"), "EU", "EN");
+var loadedWithPrices = AccountLoader.Load([new(savedVariablesPath)], catalog, [market]);
+var pricedAccount = loadedWithPrices.Accounts.Single(a => a.Server == "EU");
+foreach (var item in pricedAccount.Inventory)
+    Console.WriteLine($"{item.Name}: {item.Price.Status}, stack estimate {item.EstimatedStackPrice}");
+
+// Exact variant lookup also works without an account.
+PriceEntry? exact = market.Find(market.Entries.First().Key);
+market.Associate(pricedAccount); // Refresh associations on an existing graph.
+```
+
+`PriceCatalog.Items` contains TTC identities/localized names; `Entries` contains every priced variant, including unowned items. TTC IDs are **not ESO item IDs**. Keys retain quality, market level (50+CP for champion items), trait, and additional armor/potion/master-writ dimensions. `AccountJson` persists catalogs independently. No price data is compiled or bundled.
+
+Every `OwnedItem` has a `Price` association result. Matched prices keep listing minimum/average/maximum, suggested price, sale average, and listing/sale unit counts separately. Stack estimates use suggested price, then sale average, then listing average; `EstimateBasis` identifies the choice. A match does not establish binding/tradability or sellable wealth.
+
+Missing catalogs, unknown identities, absent listings and missing variant metadata are distinct statuses, never zero. Exact matching uses localized names, quality, level, trait, armor weight and potion effects. Some saves lack equipment traits or master-writ requirements; those items remain `NeedsMetadata`, while all their catalog variants remain available through `Entries`/`Find`. Callers can supply `RequiredLevel`, `RequiredChampionPoints` and `SpecializedItemType` on items with additional metadata. There is no nearest-quality or name-only fallback.
+
+`PriceSource` records region, language, embedded TTC timestamp and file modification time once per account/catalog. Dates are preserved as supplied, not proof of live availability. The reader never downloads data, executes Lua, starts the TTC client or modifies addon files. Refresh TTC's files separately. See `samples/EsoData.Prices` for a local coverage diagnostic.
+
+## Package details
+
+```shell
+dotnet add package EsoData.NET
+```
+
 The package is `EsoData.NET`; its assembly and root namespace are `EsoData`. Requires .NET 10. Release packages are also attached to [GitHub releases](https://github.com/JuliusJacobsohn/EsoData.NET/releases).
 
 ## What it supports

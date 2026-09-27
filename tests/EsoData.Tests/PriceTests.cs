@@ -63,4 +63,26 @@ public class PriceTests
         Assert.Equal(new[] { "8", "3", "10", "13" }, catalog.Entries[1].Key.Extra);
         Assert.Throws<FormatException>(() => TtcPriceReader.Parse("self.PriceTable={Data=os.execute('bad')}", Lookup));
     }
+    [Theory]
+    [InlineData(28, 24)] [InlineData(29, 22)] [InlineData(30, 25)] [InlineData(31, 21)] [InlineData(32, 23)]
+    [InlineData(19, 16)] [InlineData(20, 15)]
+    public void EsoAndTtcTraitEnumsAreTranslated(int esoTrait, int ttcTrait)
+    {
+        var market = new PriceCatalog { Items = [new(1, "test", 0)], Entries =
+            [new(new(1, 3, 210, ttcTrait, []), new(10, null, null, null, null, null, null, null, null))] };
+        Assert.Equal(PriceMatchStatus.Matched, market.Match(new() { Name = "test", Quality = 4, Trait = esoTrait,
+            RequiredChampionPoints = 160 }).Status);
+    }
+    [Fact]
+    public void PotionEffectsAndChampionLevelMustBothMatch()
+    {
+        var market = new PriceCatalog { Items = [new(1, "potion", 450)], Entries =
+            [new(new(1, 0, 200, -1, ["1|3|5"]), new(10, null, null, null, null, null, null, null, null))] };
+        var fields = new long[21]; fields[0] = 1; fields[1] = 307; fields[2] = 50;
+        fields[20] = 3 + (11 << 8) + (15 << 16);
+        var item = new OwnedItem { Name = "potion", Quality = 1, Link = new ItemLink(fields).ToString() };
+        Assert.Equal(PriceMatchStatus.Matched, market.Match(item).Status);
+        fields[20] = 1; item.Link = new ItemLink(fields).ToString();
+        Assert.Equal(PriceMatchStatus.NotListed, market.Match(item).Status);
+    }
 }
