@@ -5,6 +5,23 @@ namespace EsoData.Tests;
 public class CatalogTests
 {
     [Fact]
+    public void CspsChampionNamesComeFromInstalledDataWithoutCompiledIds()
+    {
+        var definitions = CspsChampionCatalog.Parse("""
+            [66] = GS(SI_RIDINGTRAINTYPE1) --Steed's Blessing (Speed)
+
+            [265] = string.format("", GS()) --Ironclad
+
+            [46] = string.format("", GS()) --Bastion
+            """);
+
+        Assert.Equal(3, definitions.Count);
+        Assert.Equal(new(66, "Steed's Blessing", "Craft"), definitions.Single(x => x.Id == 66));
+        Assert.Equal("Warfare", definitions.Single(x => x.Id == 265).Discipline);
+        Assert.Equal("Fitness", definitions.Single(x => x.Id == 46).Discipline);
+    }
+
+    [Fact]
     public void LibSetsRangesIncludeStartAndFollowingCount()
     {
         var catalog = LibSetsCatalog.Parse("""

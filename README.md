@@ -99,6 +99,7 @@ The package is `EsoData.NET`; its assembly and root namespace are `EsoData`. Req
 | LibMultiAccountSets | Current compressed and legacy account collection masks, including 36-bit values |
 | uespLog | Character observations, purchased skills and skill-line ranks, CP slots/allocations/budgets, research summaries/timers, current and per-bar stats, equipped items and saved inventories |
 | Caro's Skill Point Saver | Default, named and auxiliary saved profiles; native CSPS text import/export with skills, passive ranks, bars, attributes, CP and gear |
+| Caro's Skill Point Saver installed data | Refreshable Champion Point names and discipline membership from `data/cpinfo.lua` |
 | ESO-Hub | `addondata` text and build-editor URLs, including skills, CP, equipment and consumables |
 | Dolgubon's Lazy Set Crafter | Read saved crafting queues; generate and read item-link lists for **Import Links** |
 | LibSets | Read current installed set names and compressed item-ID membership tables |
@@ -165,6 +166,14 @@ var reloaded = GameCatalog.Read("catalog.json");
 foreach (var set in reloaded.FindSets("Order"))
     Console.WriteLine($"{set.Id}: {set.Names["en"]}, {set.ItemIds.Count} item IDs");
 ```
+
+Champion Point display names can also be read from the installed CSPS addon without compiling a game-ID table into the library:
+
+```csharp
+var championNames = CspsChampionCatalog.Read(Path.Combine(addonsDirectory, "CarosSkillPointSaver"));
+```
+
+This source supplies IDs, display names, and discipline membership. It does not claim point caps, prerequisites, or whether a star is slottable; those rules still require a fuller external catalog.
 
 Run that again after updating LibSets to refresh its catalog. Set membership alone does not reveal each item's trait or equipment type. Enrich item/skill metadata from UESP's `exportJson.php` output with `UespCatalog.Parse(json, sourceUrl, version)`, or provide a catalog in the library's JSON shape. `GameCatalog.Merge` preserves LibSets membership and lets later descriptive fields supplement it. Fetching, refresh scheduling and storage belong to your application. UESP access/availability is not guaranteed by this library.
 
