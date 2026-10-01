@@ -6,7 +6,7 @@ namespace EsoData.Catalogs;
 
 public sealed record CatalogSource(string Name, string? Location = null, string? Version = null, DateTimeOffset? ReadAt = null);
 public sealed record ItemDefinition(long Id, string? Name = null, long? SetId = null, int? EquipType = null,
-    int? ArmorType = null, int? WeaponType = null, int? Trait = null);
+    int? ArmorType = null, int? WeaponType = null, int? Trait = null, long? DefaultEnchantmentEffectId = null);
 /// <summary>Describes one crafted result using data carried by an external item catalog.</summary>
 public sealed record CraftedItemSelector(long SetId, int? EquipType = null, int? ArmorType = null,
     int? WeaponType = null, int? Trait = null)
@@ -118,7 +118,8 @@ public sealed class GameCatalog
         : throw new KeyNotFoundException($"Ability {id} is not in this catalog.");
     private static ItemDefinition Merge(ItemDefinition existing, ItemDefinition later) => new(later.Id,
         later.Name ?? existing.Name, later.SetId ?? existing.SetId, later.EquipType ?? existing.EquipType,
-        later.ArmorType ?? existing.ArmorType, later.WeaponType ?? existing.WeaponType, later.Trait ?? existing.Trait);
+        later.ArmorType ?? existing.ArmorType, later.WeaponType ?? existing.WeaponType, later.Trait ?? existing.Trait,
+        later.DefaultEnchantmentEffectId ?? existing.DefaultEnchantmentEffectId);
     private static SetDefinition Merge(SetDefinition existing, SetDefinition later)
     {
         var names = new Dictionary<string, string>(existing.Names);

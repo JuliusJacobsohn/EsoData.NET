@@ -24,7 +24,8 @@ public static class UespCatalog
                 {
                     var id = Integer(row, "itemId") ?? throw new FormatException("UESP itemId is missing.");
                     catalog.Items[id] = new(id, Text(row, "name"), Integer(row, "setId"), Int(row, "equipType"),
-                        Int(row, "armorType"), Int(row, "weaponType"), Int(row, "trait"));
+                        Int(row, "armorType"), Int(row, "weaponType"), Int(row, "trait"),
+                        Integer(row, "defaultEnchantId") is > 0 and var enchant ? enchant : null);
                 }
             }
             else if (table.Name.StartsWith("minedSkills", StringComparison.Ordinal))

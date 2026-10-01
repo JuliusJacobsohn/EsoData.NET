@@ -103,9 +103,12 @@ The package is `EsoData.NET`; its assembly and root namespace are `EsoData`. Req
 | ESO-Hub | `addondata` text and build-editor URLs, including skills, CP, equipment and consumables |
 | Dolgubon's Lazy Set Crafter | Read saved crafting queues; generate and read item-link lists for **Import Links** |
 | LibSets | Read current installed set names and compressed item-ID membership tables |
+| LibLazyCrafting | Read current glyph, potency and aspect rune tables; resolve exact rune quantities and export chat queue commands |
 | UESP JSON / external JSON | Read item and skill metadata; save/load searchable catalogs independently of the assembly |
 
 Lua readers retain the original parsed tables in `Raw`, including fields not yet modeled. They parse data **without executing Lua**. There is no automatic write-back to addon SavedVariables.
+
+`LazyEnchantingCatalog.Read(libLazyCraftingDirectory)` resolves glyph recipes from the installed addon's `Enchanting.lua`. `Recipe(CraftingOrder)` returns rune IDs, material quantities and a `/script LLC_UserRequests:CraftEnchantingItemId(...)` command. Paste it once into ESO chat and visit an enchanting station to craft loose glyphs; apply them manually. The queue lasts until reload/logout. Standalone glyphs cannot be imported through Lazy Set Crafter's **Import Links**. `Observe(OwnedItem, GameCatalog)` distinguishes applied glyphs from built-in enchants; missing default enchant metadata stays unknown. UESP item catalogs can provide `defaultEnchantId` without bundling a game database.
 
 ## Read account inventory
 
