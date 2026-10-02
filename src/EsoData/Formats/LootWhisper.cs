@@ -63,12 +63,13 @@ public static class LootWhisper
 
     private static string? Recipient(LootEvent loot)
     {
+        var account = loot.RecipientAccount;
+        if (account.StartsWith('@') && account.Length > 1
+            && !account.Any(c => char.IsWhiteSpace(c) || char.IsControl(c) || c is ',' or '|')) return account;
         var character = loot.RecipientCharacter.Trim();
         if (character.Length > 0 && !character.StartsWith('@') && character != "nil"
             && !character.Any(c => char.IsControl(c) || c is ',' or '|')) return character;
-        var account = loot.RecipientAccount;
-        return account.StartsWith('@') && account.Length > 1
-            && !account.Any(c => char.IsWhiteSpace(c) || c is ',' or '|') ? account : null;
+        return null;
     }
 
     // ESO's documented recipient separators differ for character names and account IDs.
