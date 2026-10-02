@@ -29,6 +29,8 @@ public sealed class EsoAccount
     public Dictionary<long, long>? SetCollections { get; set; }
     public List<AccountSource> Sources { get; set; } = [];
     public PriceSource? PriceSource { get; set; }
+    /// <summary>Group loot observed by this installation on the account's server. Does not establish ownership.</summary>
+    public LootHistory? LootHistory { get; set; }
     [JsonIgnore] public string Key => Server.ToUpperInvariant() + "/" + Name.ToUpperInvariant();
     [JsonIgnore] public IEnumerable<OwnedItem> Inventory => SharedStorage.Concat(Characters.SelectMany(c => c.Storage)).SelectMany(s => s.Items);
     public EsoAccount DeepClone() => AccountJson.Clone(this);

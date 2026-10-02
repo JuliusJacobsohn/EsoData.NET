@@ -57,6 +57,12 @@ The library performs no network requests and never writes addon files. Hosts can
 dotnet add package EsoData.NET
 ```
 
+## Retained group loot
+
+`account.LootHistory` reads optional Loot Log history with timestamps, quantities, recipient account/character names and item links/IDs. `LootLogReader.Read(path)` is also available independently. Packed records and legacy table records are supported; non-item collectibles and antiquities retain their original link with a null item ID. Malformed rows produce diagnostics.
+
+History is scoped to the local installation and server, not account ownership. It never adds drops to inventory. Loot Log keeps a bounded history according to its settings; deleted or unrecorded events cannot be recovered. File modification time and source coverage remain available, and saving with `/reloadui` or logout is required to see newly recorded loot on disk.
+
 ## Local TTC prices
 
 ```csharp

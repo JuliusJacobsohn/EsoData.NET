@@ -15,6 +15,7 @@ public static class AccountLoader
     {
         var result = new AccountLoadResult();
         var winners = new Dictionary<string, (DateTimeOffset? Scan, DateTimeOffset? File, int Priority)>();
+        var lootHistories = new List<LootHistory>();
         foreach (var input in inputs)
         {
             Read("IIfA.lua", path => AddInventory(IifaReader.Read(path), 100));
@@ -148,6 +149,9 @@ public static class AccountLoader
                 }
             });
 
+            if (File.Exists(Path.Combine(input.SavedVariablesPath, "LootLog.lua")))
+                Read("LootLog.lua", path => lootHistories.Add(LootLogReader.Read(path)));
+
             void Read(string name, Action<string> action)
             {
                 var path = Path.Combine(input.SavedVariablesPath, name);
@@ -206,6 +210,22 @@ public static class AccountLoader
                         source.Coverage.Add(new("inventory", inventory.CharacterId, location, inventory.ObservedAt, data.Diagnostics.Count == 0));
                     }
                 }
+            }
+        }
+        foreach (var account in result.Accounts)
+        {
+            // Histories are installation/server scoped. Never invent inventory or accounts from recipients.
+            var histories = lootHistories.OrderByDescending(h => h.Source.FileWrittenAt).ToArray();
+            if (histories.Length == 0) continue;
+            account.LootHistory = new() { Source = histories[0].Source,
+                Events = histories.SelectMany(h => h.Events).Where(e => NormalizeServer(e.Server) == account.Server)
+                    .Distinct().OrderByDescending(e => e.ReceivedAt).ToList(),
+                Diagnostics = histories.SelectMany(h => h.Diagnostics).Distinct().ToList() };
+            foreach (var history in histories)
+            {
+                var source = Source(account, history.Source);
+                source.Diagnostics.AddRange(history.Diagnostics);
+                source.Coverage.Add(new("lootHistory", null, "installation/server", null, false));
             }
         }
         if (prices is not null)
