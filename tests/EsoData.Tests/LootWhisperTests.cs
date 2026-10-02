@@ -18,9 +18,9 @@ public class LootWhisperTests
         Assert.Equal(fields, linked.Fields);
         Assert.Equal(0, linked.LinkStyle);
         Assert.Equal("Example Ice Staff", linked.Label);
-        Assert.StartsWith("/w @Friend, ", draft.Command);
+        Assert.StartsWith("/w Friend, ", draft.Command);
         Assert.Contains(draft.ItemLink, draft.Message);
-        Assert.Equal($"/w @Friend, {draft.Message}", draft.Command);
+        Assert.Equal($"/w Friend, {draft.Message}", draft.Command);
     }
 
     [Fact]
@@ -50,6 +50,27 @@ public class LootWhisperTests
     public void UnusableRecipientsHaveNoDraft(string recipient)
     {
         var link = new ItemLink(new long[21].Select((n, i) => i == 0 ? 123L : n)).ToString();
-        Assert.Null(LootWhisper.Create(Event(link) with { RecipientAccount = recipient }));
+        Assert.Null(LootWhisper.Create(Event(link) with { RecipientAccount = recipient, RecipientCharacter = "" }));
+    }
+
+    [Fact]
+    public void AccountFallbackUsesSpaceAndCharacterNamesMayContainSpaces()
+    {
+        var link = new ItemLink(new long[21].Select((n, i) => i == 0 ? 123L : n)).ToString();
+        Assert.StartsWith("/w Friend With Spaces, ", LootWhisper.Create(Event(link) with { RecipientCharacter = "Friend With Spaces" })!.Command);
+        Assert.StartsWith("/w @Friend Hi!", LootWhisper.Create(Event(link) with { RecipientCharacter = "" })!.Command);
+    }
+
+    [Fact]
+    public void GroupedRequestsKeepEveryExactLinkWithinLimitAndUseMostRecentCharacter()
+    {
+        var events = Enumerable.Range(1, 5).Select(i => Event(new ItemLink(new long[21].Select((n, j) => j == 0 ? i : n)).ToString())
+            with { ReceivedAt = DateTimeOffset.UnixEpoch.AddSeconds(i), RecipientCharacter = i == 5 ? "Current Character" : "Old Character" }).ToArray();
+        var messages = LootWhisper.CreateMany(events, _ => "Example item");
+        Assert.True(messages.Count > 1);
+        Assert.All(messages, m => { Assert.True(m.Command.Length <= 350); Assert.StartsWith("/w Current Character, ", m.Command); });
+        Assert.Equal(new long[] { 5, 4, 3, 2, 1 }, messages.SelectMany(m => m.ItemLinks).Select(l => ItemLink.Parse(l).ItemId));
+        Assert.Throws<ArgumentException>(() => LootWhisper.CreateMany(events.Append(events[0] with { RecipientAccount = "@Other" })));
+        Assert.Throws<ArgumentException>(() => LootWhisper.CreateMany(events, maximumCommandLength: 10));
     }
 }
