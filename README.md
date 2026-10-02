@@ -63,6 +63,8 @@ dotnet add package EsoData.NET
 
 History is scoped to the local installation and server, not account ownership. It never adds drops to inventory. Loot Log keeps a bounded history according to its settings; deleted or unrecorded events cannot be recovered. File modification time and source coverage remain available, and saving with `/reloadui` or logout is required to see newly recorded loot on disk.
 
+`EsoData.Formats.LootWhisper.Create(lootEvent, itemName)` generates a copyable whisper draft with recipient, labeled item link, message and `/w @recipient, message` command. It preserves every numeric field of the observed link, including enchantments and unknown fields; a catalog name changes display text only. Non-item events or unusable recipients return null. This formats text only, without sending chat or asserting trade eligibility.
+
 ## Local TTC prices
 
 ```csharp
