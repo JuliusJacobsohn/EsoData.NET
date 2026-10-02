@@ -13,6 +13,8 @@ A standalone **.NET 10** library for reading Elder Scrolls Online addon data int
 
 The main API loads a mutable account graph, edits typed build plans, compares them with observed characters, and exports selected sections. The lower-level addon readers remain available for adapter development. See [architecture and data boundaries](docs/account-architecture.md).
 
+`SetCollectionProgress.Describe(setId, mask, catalog)` reports registered collection counts, named collected/missing pieces and reconstruction crystal cost. Piece masks must come from the game API or a caller-supplied JSON catalog, not item ordinals. `SetCollectionCatalog` reads optional game captures stored under `LibMultiAccountSetsSavedVariables.EsoDataPieces` (set ID → `{pieceId, slotMask, nameOrItemLink}` rows). Missing definitions leave total/completion/cost unknown; this does not infer registration from inventory or loot history. Reconstruction costs follow the installed LibMultiAccountSets formula; quality upgrade materials are separate.
+
 ## Load, edit, compare and export
 
 ```csharp

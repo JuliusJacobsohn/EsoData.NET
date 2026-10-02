@@ -34,7 +34,7 @@ public sealed record SkillDefinition(long Id, string? Name = null, long? BaseAbi
     bool? IsUltimate = null, int? RequiredLineRank = null);
 public sealed record SkillLineDefinition(long Id, string Name, string? FullName = null, string? ClassType = null);
 public sealed record SetDefinition(long Id, IReadOnlyDictionary<string, string> Names, IReadOnlyList<long> ItemIds);
-public sealed record CollectionPiece(long SetId, long PieceId, long SlotMask);
+public sealed record CollectionPiece(long SetId, long PieceId, long SlotMask, string? Name = null);
 public sealed record ResearchTrait(int Index, int CraftingType, int LineIndex, int TraitIndex, int TraitType, string? Name = null);
 
 /// <summary>A caller-owned, refreshable JSON catalog. No game ID database is compiled into the package.</summary>
