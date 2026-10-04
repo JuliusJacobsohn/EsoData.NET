@@ -14,6 +14,9 @@ public sealed partial class ItemLink
     public long Subtype => fields[1];
     public int Level => checked((int)fields[2]);
     public long EnchantmentItemId => fields[3];
+    /// <summary>The chosen trait on a transmuted/reconstructed item; zero means use the item's catalog trait.</summary>
+    public int? TraitOverride => fields[6] > 0 ? checked((int)fields[6]) : null;
+    public int? ResolveTrait(int? catalogTrait) => TraitOverride ?? catalogTrait;
     public int StyleId => checked((int)fields[15]);
     public bool IsCrafted => fields[16] != 0;
 

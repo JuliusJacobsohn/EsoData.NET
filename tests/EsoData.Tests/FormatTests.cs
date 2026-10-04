@@ -6,6 +6,21 @@ namespace EsoData.Tests;
 
 public class FormatTests
 {
+    [Theory]
+    [InlineData(0, 21, 21)]
+    [InlineData(31, 21, 31)]
+    [InlineData(18, 16, 18)]
+    [InlineData(3, 4, 3)]
+    [InlineData(31, null, 31)]
+    [InlineData(0, null, null)]
+    public void ChosenTraitOverridesCatalogWithoutChangingItemIdentity(int chosen, int? original, int? expected)
+    {
+        var fields = new long[21]; fields[0] = 900001; fields[6] = chosen;
+        var link = ItemLink.Parse(new ItemLink(fields).ToString());
+        Assert.Equal(expected, link.ResolveTrait(original));
+        Assert.Equal(900001, link.ItemId);
+    }
+
     [Fact]
     public void LuaPreservesIdentifiersKeysEscapesAndChunksWithoutExecutingCode()
     {

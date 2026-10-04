@@ -90,7 +90,7 @@ public static class AccountLoader
                             {
                                 var def = catalog?.Items.GetValueOrDefault(slot.Value.ItemId);
                                 build.Equipment[index] = new() { Link = slot.Value.ToString(), ItemId = slot.Value.ItemId,
-                                    SetId = def?.SetId, Trait = def?.Trait, Type = def?.WeaponType is > 0 ? def.WeaponType : def?.ArmorType };
+                                    SetId = def?.SetId, Trait = slot.Value.ResolveTrait(def?.Trait), Type = def?.WeaponType is > 0 ? def.WeaponType : def?.ArmorType };
                             }
                         build.Sections |= BuildSections.Equipment;
                         source.Coverage.Add(new("equipment", character.Id, null, state.ObservedAt, true));
@@ -202,7 +202,7 @@ public static class AccountLoader
                             storage.Items.Add(new() { Reference = scope + "/" + (item.Slot?.ToString() ?? "row" + index++),
                                 ItemId = item.Link.ItemId, Link = item.Link.ToString(), Count = item.Count, Name = item.Name ?? def?.Name,
                                 Location = location, CharacterId = inventory.CharacterId, Slot = item.Slot, Quality = item.Quality,
-                                SetId = def?.SetId, Trait = def?.Trait, ArmorType = def?.ArmorType, WeaponType = def?.WeaponType, EquipType = def?.EquipType });
+                                SetId = def?.SetId, Trait = item.Link.ResolveTrait(def?.Trait), ArmorType = def?.ArmorType, WeaponType = def?.WeaponType, EquipType = def?.EquipType });
                         }
                         var locations = inventory.CharacterId is null ? account.SharedStorage :
                             Character(account, new(account.Server, account.Name, inventory.CharacterId)).Storage;
