@@ -39,6 +39,7 @@ public static class AccountLoader
                     character.Progress.SkillLines = state.SkillLineRanks?.ToDictionary(x => x.Key, x => x.Value);
                     character.Progress.Research = state.Research;
                     character.RecordedStatistics = state.Statistics;
+                    character.RecordedEffects = state.Effects;
                     source.Coverage.Add(new("character", character.Id, null, state.ObservedAt, true));
                     var build = character.Build;
                     if (state.Raw.Table("Skills") is LuaTable skillData)

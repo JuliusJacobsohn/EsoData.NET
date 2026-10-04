@@ -31,6 +31,7 @@ public sealed class CharacterState
     public ChampionState? Champion { get; init; }
     public ResearchSummary? Research { get; init; }
     public CharacterStatistics? Statistics { get; init; }
+    public CharacterEffects? Effects { get; init; }
     public IReadOnlyDictionary<string, int>? SkillLineRanks { get; init; }
     public IReadOnlyDictionary<string, ItemLink> Equipment { get; init; } = new Dictionary<string, ItemLink>();
     public required LuaTable Raw { get; init; }

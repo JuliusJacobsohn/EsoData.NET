@@ -6,6 +6,18 @@ namespace EsoData.Tests;
 
 public sealed class UespDetailsTests
 {
+    [Fact]
+    public void ActiveEffectsAreSeparateFromTheLastRecordedMeal()
+    {
+        var effects = Read("Buffs={{id=123,name='Future boon',desc='Details'}},LastFoodEatenName='Old meal'").Effects!;
+        Assert.Equal(123, Assert.Single(effects.Active!).AbilityId);
+        Assert.Equal("Old meal", effects.LastFood!.Name);
+        Assert.Empty(Read("Buffs={}").Effects!.Active!);
+        Assert.Null(Read("LastFoodEatenName='Meal'").Effects!.Active);
+        Assert.Null(Read("").Effects);
+        Assert.Equal(effects.LastFood, EsoData.Accounts.AccountJson.Clone(effects).LastFood);
+    }
+
     private static CharacterState Read(string fields) => Assert.Single(UespLogReader.Parse(
         SavedVariables.Parse("uespLogSavedVars={CharName='Example',CharId='123',TimeStamp=200," + fields + "}")).CharacterStates);
 

@@ -6,6 +6,21 @@ namespace EsoData.Addons;
 
 internal static class UespCharacterDetails
 {
+    internal static CharacterEffects? Effects(LuaTable data)
+    {
+        var buffs = data.Table("Buffs");
+        var foodName = data.String("LastFoodEatenName");
+        var foodLink = data.String("LastFoodEatenLink");
+        if (buffs is null && foodName is null && foodLink is null) return null;
+        var active = buffs?.Tables().Where(x => x.Value.Integer("id") is > 0)
+            .Select(x => new ObservedEffect(x.Value.Integer("id")!.Value, x.Value.String("name"),
+                x.Value.String("desc"), x.Value.String("icon"))).ToArray();
+        var food = foodName is null && foodLink is null ? null : new LastFoodObservation(foodName, foodLink,
+            data.String("LastFoodEatenDesc"), ReaderSupport.Int(data, "LastFoodEatenType"),
+            ReaderSupport.Int(data, "LastFoodEatenLevel"), ReaderSupport.Int(data, "LastFoodEatenCP"));
+        return new(active, food);
+    }
+
     internal static ResearchSummary? Research(LuaTable? data)
     {
         if (data is null) return null;

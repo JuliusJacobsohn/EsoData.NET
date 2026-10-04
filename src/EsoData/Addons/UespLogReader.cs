@@ -52,6 +52,7 @@ public static partial class UespLogReader
                     Champion = UespCharacterDetails.Champion(data.Table("ChampionPoints2")),
                     Research = UespCharacterDetails.Research(data.Table("Research")),
                     Statistics = UespCharacterDetails.Statistics(data),
+                    Effects = UespCharacterDetails.Effects(data),
                     SkillLineRanks = UespCharacterDetails.SkillLines(data.Table("Skills"))
                 });
             }

@@ -54,6 +54,7 @@ public sealed class EsoCharacter
     public List<Storage> Storage { get; set; } = [];
     public List<SavedBuild> SavedBuilds { get; set; } = [];
     public CharacterStatistics? RecordedStatistics { get; set; }
+    public CharacterEffects? RecordedEffects { get; set; }
 }
 
 public sealed class CharacterProgress
