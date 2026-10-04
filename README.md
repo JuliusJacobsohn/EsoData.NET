@@ -61,6 +61,12 @@ The library performs no network requests and never writes addon files. Hosts can
 dotnet add package EsoData.NET
 ```
 
+## Saved combat reports
+
+`AccountLoadResult.CombatReports` and `CombatMetricsReader.Read(path)` expose Combat Metrics' saved fight summaries: character name, fight label/location, start time, damage/healing durations and outgoing/incoming DPS/HPS. Reports are installation-wide because CMX's summary does not identify an account or server. Empty saved history is distinct from a missing source.
+
+CMX recent fights exist in game memory until the user saves a fight in its report window and flushes SavedVariables with `/reloadui` or logout. Only saved fights are readable. Modern compressed ability/buff detail payloads are flagged but not decoded; this reader does not fabricate a rotation analysis from summary DPS. Compatible summary fields are read without pinning the addon/game version.
+
 ## Retained group loot
 
 `account.LootHistory` reads optional Loot Log history with timestamps, quantities, recipient account/character names and item links/IDs. `LootLogReader.Read(path)` is also available independently. Packed records and legacy table records are supported; non-item collectibles and antiquities retain their original link with a null item ID. Malformed rows produce diagnostics.

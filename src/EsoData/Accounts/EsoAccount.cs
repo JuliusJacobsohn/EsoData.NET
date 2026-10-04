@@ -116,5 +116,7 @@ public sealed record AccountInput(string SavedVariablesPath, string? DefaultServ
 public sealed class AccountLoadResult
 {
     public List<EsoAccount> Accounts { get; set; } = [];
+    /// <summary>Installation-wide saved fight summaries; never inferred to belong to an account.</summary>
+    public List<CombatMetricsReport> CombatReports { get; set; } = [];
     public List<string> Diagnostics { get; set; } = [];
 }

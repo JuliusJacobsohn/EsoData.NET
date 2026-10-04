@@ -152,6 +152,9 @@ public static class AccountLoader
             if (File.Exists(Path.Combine(input.SavedVariablesPath, "LootLog.lua")))
                 Read("LootLog.lua", path => lootHistories.Add(LootLogReader.Read(path)));
 
+            if (File.Exists(Path.Combine(input.SavedVariablesPath, "CombatMetricsFightData.lua")))
+                Read("CombatMetricsFightData.lua", path => result.CombatReports.Add(CombatMetricsReader.Read(path)));
+
             void Read(string name, Action<string> action)
             {
                 var path = Path.Combine(input.SavedVariablesPath, name);
