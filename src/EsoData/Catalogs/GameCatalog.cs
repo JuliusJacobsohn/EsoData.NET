@@ -130,5 +130,5 @@ public sealed class GameCatalog
         later.Name ?? existing.Name, later.BaseAbilityId ?? existing.BaseAbilityId, later.Rank ?? existing.Rank,
         later.Morph ?? existing.Morph, later.IsPassive ?? existing.IsPassive, later.CraftedId ?? existing.CraftedId,
         later.SkillLine ?? existing.SkillLine, later.IsUltimate ?? existing.IsUltimate,
-        later.RequiredLineRank ?? existing.RequiredLineRank);
+        later.RequiredLineRank ?? existing.RequiredLineRank, later.IsMastery ?? existing.IsMastery);
 }

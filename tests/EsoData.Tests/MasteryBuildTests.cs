@@ -15,6 +15,7 @@ public sealed class MasteryBuildTests
         Assert.True(catalog.Skills[1].IsMastery); Assert.Null(catalog.Skills[2].IsMastery);
         Assert.False(catalog.Skills[3].IsMastery);
         Assert.True(GameCatalog.FromJson(catalog.ToJson()).Skills[1].IsMastery);
+        Assert.True(GameCatalog.Merge([catalog, new() { Skills = { [1] = new(1, Name: "Later name") } }]).Skills[1].IsMastery);
     }
 
     [Fact]
