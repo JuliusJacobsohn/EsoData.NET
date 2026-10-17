@@ -54,6 +54,6 @@ public sealed partial class ItemLink
     public override string ToString() => $"|H{LinkStyle}:item:{string.Join(':', fields.Select(x => x.ToString(CultureInfo.InvariantCulture)))}|h{Label}|h";
     public string WithoutLabel() => new ItemLink(fields, LinkStyle).ToString();
 
-    [GeneratedRegex(@"\|H(\d+):item:(\d+(?::\d+){20,})\|h([^|]*)\|h", RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"\|H(\d+):item:(\d+(?::\d+){20,})\|h((?:[^|]|\|\|)*)\|h", RegexOptions.CultureInvariant)]
     private static partial Regex LinkPattern();
 }

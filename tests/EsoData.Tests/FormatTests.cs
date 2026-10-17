@@ -78,6 +78,17 @@ public class FormatTests
     }
 
     [Fact]
+    public void ItemLinksPreserveEscapedPipesWithoutJoiningAdjacentLinks()
+    {
+        var link = new ItemLink(new long[21], 0, "[Fleshfly Larva||Fleshfly Larvae]");
+        var text = link.ToString();
+        Assert.Equal(text, ItemLink.Parse(text).ToString());
+        Assert.Equal(link.Label, ItemLink.Parse(text).Label);
+        Assert.Equal(2, ItemLink.FindAll($"prefix {text} {text} suffix").Count());
+        Assert.False(ItemLink.TryParse(text.Replace("||", "|", StringComparison.Ordinal), out _));
+    }
+
+    [Fact]
     public void NativeCspsKeepsMorphsPassivesAndFutureSections()
     {
         const string input = "900102:2*900200:1*-*-*-#900100,-,-,-,-,-;-,-,-,-,-,-#0;64;0#-#-*-,-,-,-;-,-,-,-;-,-,-,-#-#qs;opaque#outfit;opaque#1#future";

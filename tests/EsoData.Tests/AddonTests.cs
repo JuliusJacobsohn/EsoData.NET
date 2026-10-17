@@ -116,6 +116,23 @@ public class AddonTests
     }
 
     [Fact]
+    public void UespCraftBagRetainsPluralizedItemLabels()
+    {
+        var fields = new long[21]; fields[0] = 900001;
+        var link = new ItemLink(fields, 0, "[Fleshfly Larva||Fleshfly Larvae]");
+        var lua = $$$$$$"""
+            uespLogSavedVars={data={IsCraftBag=1,AccountName='@Example',Server='EU',
+              Inventory={ [301]='1243 {{{{{{link}}}}}} Cons ' }}}
+            """;
+        var result = UespLogReader.Parse(SavedVariables.Parse(lua));
+        Assert.Empty(result.Diagnostics);
+        var item = Assert.Single(Assert.Single(result.Inventories).Items);
+        Assert.Equal(1243, item.Count);
+        Assert.Equal(link.ToString(), item.Link.ToString());
+        Assert.Equal("CraftBag", item.Location);
+    }
+
+    [Fact]
     public void UespCharacterInventoryAndCpUseDifferentIdentityFields()
     {
         var link = CraftedItem.Create(900001, 32, ItemQuality.Epic).ToString();
