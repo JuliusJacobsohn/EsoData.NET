@@ -37,7 +37,8 @@ public static class UespCatalog
                     catalog.Skills[id] = new(id, Text(row, "name"), Integer(row, "baseAbilityId"), Int(row, "rank"),
                         Int(row, "morph"), Integer(row, "isPassive") is long p ? p != 0 : null,
                         Integer(row, "craftedId"), Text(row, "skillLine"),
-                        Integer(row, "isUltimate") is long u ? u != 0 : null);
+                        Integer(row, "isUltimate") is long u ? u != 0 : null,
+                        IsMastery: Integer(row, "isMastery") is long mastery && mastery >= 0 ? mastery != 0 : null);
                 }
             }
             else if (table.Name.StartsWith("minedSkillLines", StringComparison.Ordinal))

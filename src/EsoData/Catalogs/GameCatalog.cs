@@ -31,7 +31,7 @@ public sealed record CraftedItemSelector(long SetId, int? EquipType = null, int?
 }
 public sealed record SkillDefinition(long Id, string? Name = null, long? BaseAbilityId = null,
     int? Rank = null, int? Morph = null, bool? IsPassive = null, long? CraftedId = null, string? SkillLine = null,
-    bool? IsUltimate = null, int? RequiredLineRank = null);
+    bool? IsUltimate = null, int? RequiredLineRank = null, bool? IsMastery = null);
 public sealed record SkillLineDefinition(long Id, string Name, string? FullName = null, string? ClassType = null);
 public sealed record SetDefinition(long Id, IReadOnlyDictionary<string, string> Names, IReadOnlyList<long> ItemIds);
 public sealed record CollectionPiece(long SetId, long PieceId, long SlotMask, string? Name = null);

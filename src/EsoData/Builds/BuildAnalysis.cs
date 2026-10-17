@@ -27,9 +27,10 @@ public static class BuildAnalysis
         var current = character.Build;
         if (parts.HasFlag(BuildSections.Skills))
         {
-            int Cost(SkillPurchase p) => p.IsPassive ? p.Rank : 1 + (p.Morph > 0 ? 1 : 0);
-            var existing = current.Skills.GroupBy(s => Family(s.Key, catalog)).ToDictionary(g => g.Key, g => g.Max(s => Cost(s.Value)));
-            var desired = build.Skills.GroupBy(s => Family(s.Key, catalog)).ToDictionary(g => g.Key, g => g.Max(s => Cost(s.Value)));
+            int Cost(long id, SkillPurchase p) => catalog.Skills.GetValueOrDefault(id)?.IsMastery == true
+                ? 0 : p.IsPassive ? p.Rank : 1 + (p.Morph > 0 ? 1 : 0);
+            var existing = current.Skills.GroupBy(s => Family(s.Key, catalog)).ToDictionary(g => g.Key, g => g.Max(s => Cost(s.Key, s.Value)));
+            var desired = build.Skills.GroupBy(s => Family(s.Key, catalog)).ToDictionary(g => g.Key, g => g.Max(s => Cost(s.Key, s.Value)));
             var incremental = desired.Sum(s => Math.Max(0, s.Value - existing.GetValueOrDefault(s.Key)));
             var refundable = existing.Sum(s => Math.Max(0, s.Value - desired.GetValueOrDefault(s.Key)));
             var total = character.Progress.TotalSkillPoints;
@@ -37,11 +38,15 @@ public static class BuildAnalysis
             var costsReconcile = observedSpent is null || observedSpent == current.SkillPointCost;
             var unchanged = current.Skills.OrderBy(s => s.Key).Select(s => (s.Key, s.Value.IsPassive, s.Value.Rank, s.Value.Morph))
                 .SequenceEqual(build.Skills.OrderBy(s => s.Key).Select(s => (s.Key, s.Value.IsPassive, s.Value.Rank, s.Value.Morph)));
-            var desiredCost = unchanged && observedSpent.HasValue ? observedSpent.Value : build.SkillPointCost;
+            var changedIds = current.Skills.Keys.Union(build.Skills.Keys).Where(id =>
+                !current.Skills.TryGetValue(id, out var before) || !build.Skills.TryGetValue(id, out var after)
+                || (before.IsPassive, before.Rank, before.Morph) != (after.IsPassive, after.Rank, after.Morph)).ToArray();
+            var masteryOnly = changedIds.Length > 0 && changedIds.All(id => catalog.Skills.GetValueOrDefault(id)?.IsMastery == true);
+            var desiredCost = (unchanged || masteryOnly) && observedSpent.HasValue ? observedSpent.Value : desired.Values.Sum();
             report.SkillPoints = new(total, desiredCost, total - desiredCost,
                 character.Progress.UnspentSkillPoints, observedSpent ?? current.SkillPointCost,
-                costsReconcile ? incremental : null, costsReconcile ? refundable : null);
-            if (!costsReconcile && !unchanged) Add("unknown", "point-cost-coverage", "skills",
+                costsReconcile || masteryOnly ? incremental : null, costsReconcile || masteryOnly ? refundable : null);
+            if (!costsReconcile && !unchanged && !masteryOnly) Add("unknown", "point-cost-coverage", "skills",
                 "Source includes automatically granted skills without cost metadata. Incremental/refundable costs cannot be established; desired total uses the listed ordinary purchases.");
             if (total is null) Add("unknown", "skill-budget", "skills", "Total skill-point budget is unobserved.");
             else if (desiredCost + constraints.ReserveSkillPoints > total)
@@ -51,6 +56,8 @@ public static class BuildAnalysis
                 Add("unmet", "respec-required", "skills", "Incremental purchases exceed unspent points; refund or respec first.");
             foreach (var duplicate in build.Skills.GroupBy(s => Family(s.Key, catalog)).Where(g => g.Count() > 1))
                 Add("error", "duplicate-skill", "skills", $"Multiple allocations for skill family {duplicate.Key}.");
+            if (build.Skills.Count(s => catalog.Skills.GetValueOrDefault(s.Key)?.IsMastery == true) > 2)
+                Add("error", "mastery-budget", "skills", "A class mastery allocation supports at most two selections.");
             foreach (var (id, purchase) in build.Skills)
             {
                 var path = $"skills/{id}";
