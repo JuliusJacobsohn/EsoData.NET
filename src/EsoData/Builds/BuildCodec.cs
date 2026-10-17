@@ -64,6 +64,8 @@ public static class BuildCodec
                 else
                 {
                     var definition = catalog.Skills.GetValueOrDefault(id);
+                    // Scribed abilities belong to the crafted section, never the ordinary morph list.
+                    if (definition?.CraftedId is > 0) continue;
                     var family = definition?.BaseAbilityId ?? id;
                     var selected = catalog.Skills.Values.FirstOrDefault(s => s.BaseAbilityId == family && s.Morph == purchase.Morph && s.Rank == 1);
                     if (selected is not null) active.Add(catalog.ToActiveSkill(selected.Id));

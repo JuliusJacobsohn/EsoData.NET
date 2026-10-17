@@ -7,6 +7,19 @@ namespace EsoData.Tests;
 public sealed class MasteryBuildTests
 {
     [Fact]
+    public void ScribedObservationsNeverResolveThroughAnUnrelatedNegativeBaseFamily()
+    {
+        var catalog = new GameCatalog();
+        catalog.Skills[1] = new(1, BaseAbilityId: -1, Rank: 1, Morph: 0, IsPassive: false, CraftedId: 2);
+        catalog.Skills[2] = new(2, BaseAbilityId: -1, Rank: 1, Morph: 0, IsPassive: false);
+        var build = new CharacterBuild { Sections = BuildSections.Skills, Skills = { [1] = new() },
+            ScribedSkills = [new(2, 10, 20, 30)] };
+        var native = EsoData.Formats.CspsBuild.Parse(BuildCodec.Export(build, catalog, BuildSections.Skills));
+        Assert.Empty(native.Skills!.Active);
+        Assert.Equal(2, Assert.Single(native.Skills.Crafted!).CraftedAbilityId);
+    }
+
+    [Fact]
     public void CatalogDistinguishesMasteriesFromUnknownNegativeSentinels()
     {
         var catalog = UespCatalog.Parse("""
