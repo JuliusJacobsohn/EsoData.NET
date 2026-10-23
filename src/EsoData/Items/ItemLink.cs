@@ -13,6 +13,25 @@ public sealed partial class ItemLink
     public long ItemId => fields[0];
     public long Subtype => fields[1];
     public int Level => checked((int)fields[2]);
+    /// <summary>Required character level, decoded from the link variant; null for an unsupported encoding.</summary>
+    public int? RequiredLevel => RequiredChampionPoints is > 0 ? 50
+        : Subtype is >= 20 and <= 34 || Level is >= 1 and < 50 ? Level : null;
+    /// <summary>Required CP, or zero for a recognized non-CP link. Unknown variants remain null.</summary>
+    public int? RequiredChampionPoints
+    {
+        get
+        {
+            // ESO protocol variants, also documented by UESP's ESO_ITEMINTTYPE_LEVELMAP:
+            // https://github.com/uesp/uesp-esolog/blob/master/esoCommon.php
+            // 358 includes green quest rewards; 359..370 cover the other CP160 variants.
+            if (Subtype is >= 358 and <= 370) return 160;
+            if (Subtype is >= 125 and <= 174) return ((int)(Subtype - 125) % 10 + 1) * 10;
+            if (Subtype is >= 231 and <= 312 && (Subtype - 231) % 18 <= 9)
+                return 110 + (int)(Subtype - 231) / 18 * 10;
+            if (Subtype is >= 20 and <= 34 || Level is >= 1 and < 50) return 0;
+            return null;
+        }
+    }
     public long EnchantmentItemId => fields[3];
     /// <summary>The chosen trait on a transmuted/reconstructed item; zero means use the item's catalog trait.</summary>
     public int? TraitOverride => fields[6] > 0 ? checked((int)fields[6]) : null;

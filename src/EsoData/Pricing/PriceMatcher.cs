@@ -65,12 +65,7 @@ internal sealed class PriceMatcher
     private static int? LinkLevel(ItemLink link, bool leveled)
     {
         if (!leveled) return 1;
-        if (link.Subtype is >= 359 and <= 370) return 210; // CP160 dropped/crafted item links.
-        if (link.Subtype is >= 125 and <= 174) return 50 + ((int)(link.Subtype - 125) % 10 + 1) * 10;
-        if (link.Subtype is >= 231 and <= 312 && (link.Subtype - 231) % 18 <= 9)
-            return 160 + (int)(link.Subtype - 231) / 18 * 10;
-        if (link.Subtype is >= 20 and <= 34 || link.Level < 50) return link.Level;
-        return null;
+        return link.RequiredChampionPoints is > 0 ? 50 + link.RequiredChampionPoints : link.RequiredLevel;
     }
     // Protocol enum translation, not an item-ID database.
     private static int? Trait(int trait) => trait switch

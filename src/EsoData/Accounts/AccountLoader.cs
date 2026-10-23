@@ -206,7 +206,8 @@ public static class AccountLoader
                             storage.Items.Add(new() { Reference = scope + "/" + (item.Slot?.ToString() ?? "row" + index++),
                                 ItemId = item.Link.ItemId, Link = item.Link.ToString(), Count = item.Count, Name = item.Name ?? def?.Name,
                                 Location = location, CharacterId = inventory.CharacterId, Slot = item.Slot, Quality = item.Quality,
-                                SetId = def?.SetId, Trait = item.Link.ResolveTrait(def?.Trait), ArmorType = def?.ArmorType, WeaponType = def?.WeaponType, EquipType = def?.EquipType });
+                                SetId = def?.SetId, Trait = item.Link.ResolveTrait(def?.Trait), ArmorType = def?.ArmorType, WeaponType = def?.WeaponType, EquipType = def?.EquipType,
+                                RequiredLevel = item.Link.RequiredLevel, RequiredChampionPoints = item.Link.RequiredChampionPoints });
                         }
                         var locations = inventory.CharacterId is null ? account.SharedStorage :
                             Character(account, new(account.Server, account.Name, inventory.CharacterId)).Storage;
