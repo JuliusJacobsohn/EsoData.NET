@@ -1,3 +1,5 @@
+![EsoData.NET logo](https://raw.githubusercontent.com/JuliusJacobsohn/EsoData.NET/main/assets/logo.svg)
+
 # EsoData.NET
 
 [![CI](https://github.com/JuliusJacobsohn/EsoData.NET/actions/workflows/ci.yml/badge.svg)](https://github.com/JuliusJacobsohn/EsoData.NET/actions/workflows/ci.yml)
