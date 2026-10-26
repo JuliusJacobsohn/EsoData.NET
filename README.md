@@ -10,6 +10,7 @@ A standalone .NET library for reading [The Elder Scrolls: Online](https://www.el
 
 ## Features
 
+- Locate supported addon installations and check whether their saved files are present.
 - Inspect characters and account-wide inventory, including banks, craft bags and storage.
 - Read skills, Champion Points, crafting knowledge, research and set collections.
 - Edit proposed builds, compare them with saved character state, and check their requirements.
@@ -60,7 +61,7 @@ foreach (var account in loaded.Accounts)
 }
 ```
 
-Run it with `dotnet run`. For another installation, server folder or operating system, set `savedVariablesPath` to your actual SavedVariables directory. If no accounts appear, check that `IIfA.lua` exists there and that the addon has saved data.
+Run it with `dotnet run`. For another installation, server folder or operating system, set `savedVariablesPath` to your actual SavedVariables directory. If no accounts appear, use the [addon installation check](https://github.com/JuliusJacobsohn/EsoData.NET/blob/main/docs/usage.md#check-addon-installation) to locate missing addons or saved files.
 
 Inventory loading does not require `catalog.json`. A catalog supplies additional game definitions for lookups, build analysis and exports; the [catalog guide](https://github.com/JuliusJacobsohn/EsoData.NET/blob/main/docs/usage.md#resolve-ids-from-refreshable-catalogs) shows how to create and save one from installed addon data and external definitions before using it.
 

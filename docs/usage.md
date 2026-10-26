@@ -2,6 +2,23 @@
 
 [Project overview and quick start](../README.md). The examples below cover individual APIs and advanced workflows.
 
+## Check addon installation
+
+```csharp
+using EsoData.Addons;
+
+// Defaults to Documents/Elder Scrolls Online/live/AddOns and SavedVariables.
+var report = AddonDiscovery.Inspect();
+foreach (var addon in report.Addons)
+    Console.WriteLine($"{addon.Name}: installed={addon.Installed}, saved files={addon.SavedFiles.Count(f => f.Exists == true)}");
+foreach (var diagnostic in report.Diagnostics)
+    Console.WriteLine(diagnostic);
+```
+
+Pass `addonsPath` and/or `savedVariablesPath` for another installation. One supplied path infers the sibling directory; returned paths are absolute. The report distinguishes installed manifests from existing saved files, includes manifest versions and required dependency checks, and locates nested libraries and duplicate installations. Missing directories are reported without creating them. Incomplete or inaccessible scans return diagnostics and unknown statuses where absence cannot be established.
+
+This reads manifest headers and saved-file metadata only. Installation does not prove enabled or loaded status in ESO, and a saved file can survive an uninstall. Version checks use each manifest's numeric `AddOnVersion` when a dependency declares a minimum; missing version metadata remains unknown. Optional dependencies do not block the check. The API does not download, execute or modify addon files. TTC price-table availability is checked by the pricing reader separately.
+
 ## Load, edit, compare and export
 
 This example uses the SavedVariables path from the quick start and a catalog created in [Resolve IDs from refreshable catalogs](#resolve-ids-from-refreshable-catalogs). Write that catalog to `catalog.json` before running the build example; the library does not ship or automatically create this file.
