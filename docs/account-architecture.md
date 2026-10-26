@@ -1,6 +1,6 @@
 # Account-first architecture
 
-Architecture decision, 2026-09-25. The account/build API is implemented in 1.1.0; this document also records the broader domain intent. Actual source coverage and limitations are described in the README. Compatibility with the former MCP projections is not a requirement.
+Architecture decision, 2026-09-25. The account/build API is implemented in 1.1.0; this document also records the broader domain intent. Actual source coverage and limitations are described in the [usage guide](usage.md). Compatibility with the former MCP projections is not a requirement.
 
 ## What the library is for
 

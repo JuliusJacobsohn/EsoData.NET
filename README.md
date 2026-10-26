@@ -1,271 +1,100 @@
 # EsoData.NET
 
-Observed inventory and equipment use the chosen trait encoded in an item link before the catalog's default trait. `ItemLink.TraitOverride` and `ResolveTrait` support transmuted and reconstructed items without changing their base item IDs.
-
-Guide targets can be stored as `BuildPlan.Target` (`GuideSetup`): named bar abilities with scribing recipes, passive priorities, equipment trait alternatives, CP selections, masteries, attributes, Mundus and consumables. `GuideAnalysis.Compare` resolves available observations without fabricating numeric IDs or point allocations absent from the source. This declarative target is separate from an executable `CharacterBuild`; unknown source/catalog coverage remains explicit.
-
 [![CI](https://github.com/JuliusJacobsohn/EsoData.NET/actions/workflows/ci.yml/badge.svg)](https://github.com/JuliusJacobsohn/EsoData.NET/actions/workflows/ci.yml)
 [![NuGet](https://img.shields.io/nuget/v/EsoData.NET.svg)](https://www.nuget.org/packages/EsoData.NET)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+A standalone .NET library for reading [The Elder Scrolls: Online](https://www.elderscrollsonline.com/) addon data into C# models, inspecting accounts and characters, and generating build and crafting imports.
 
 > [!WARNING]
-> Created with substantial help from **OpenAI Codex** and tested against my own use cases. Please do not treat this project as a measure of my abilities as a developer, for better or worse.
+> Created with substantial help from **GPT-6.1 Sol** and tested against my own use cases. Please do not treat this project as a measure of my abilities as a developer, for better or worse.
 
-A standalone **.NET 10** library for reading Elder Scrolls Online addon data into C# models and generating build and crafting imports. No runtime dependencies, database, MCP server, game process access, or network connection is required for local formats. Use it from a console app, desktop app, web backend, or your own MCP server.
+## Features
 
-The main API loads a mutable account graph, edits typed build plans, compares them with observed characters, and exports selected sections. The lower-level addon readers remain available for adapter development. See [architecture and data boundaries](docs/account-architecture.md).
+- Inspect characters and account-wide inventory, including banks, craft bags and storage.
+- Read skills, Champion Points, crafting knowledge, research and set collections.
+- Edit proposed builds, compare them with saved character state, and check their requirements.
+- Read and write CSPS builds, work with ESO-Hub builds, and generate crafting imports.
+- Read retained group loot, saved combat summaries and local TTC market prices.
 
-`SetCollectionProgress.Describe(setId, mask, catalog)` reports registered collection counts, named collected/missing pieces and reconstruction crystal cost. Piece masks must come from the game API or a caller-supplied JSON catalog, not item ordinals. `SetCollectionCatalog` reads optional game captures stored under `LibMultiAccountSetsSavedVariables.EsoDataPieces` (set ID → `{pieceId, slotMask, nameOrItemLink}` rows). Missing definitions leave total/completion/cost unknown; this does not infer registration from inventory or loot history. Reconstruction costs follow the installed LibMultiAccountSets formula; quality upgrade materials are separate. `CollectionPieceLookup.IsCollected(itemId, catalog, masks)` maps different trait variants to the same stickerbook entry using equipment, armor and weapon metadata; incomplete or ambiguous mappings return null.
+The library has no runtime package dependencies. It reads local files without executing Lua or changing game files; applications control catalog downloads and data storage. For use from an AI client, [EsoMcp.NET](https://github.com/JuliusJacobsohn/EsoMcp.NET) exposes this library through MCP tools.
 
-## Load, edit, compare and export
+## Installation
+
+Requires **.NET 10**.
+
+```shell
+dotnet add package EsoData.NET
+```
+
+## Quick start
+
+For this inventory example, install and enable **Inventory Insight (IIfA)** using [Minion](https://minion.mmoui.com/). In ESO, log in to the characters you want to inspect, open the bank and relevant storage, then use `/reloadui` or log out normally to save the addon's observations.
+
+Create a console app and add the package:
+
+```shell
+dotnet new console -n EsoExample
+cd EsoExample
+dotnet add package EsoData.NET
+```
+
+Replace `Program.cs` with the following. It finds the usual **Windows** live-server SavedVariables directory through your Documents folder, including when Documents is redirected to OneDrive:
 
 ```csharp
 using EsoData.Accounts;
-using EsoData.Builds;
-using EsoData.Catalogs;
 
-var catalog = GameCatalog.Read("catalog.json");
-var loaded = AccountLoader.Load([new AccountInput(savedVariablesPath)], catalog);
-var account = loaded.Accounts.Single(a => a.Name == "@Example" && a.Server == "EU");
-var character = account.Character("Example Character");
+var savedVariablesPath = Path.Combine(
+    Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+    "Elder Scrolls Online", "live", "SavedVariables");
 
-var plan = new BuildPlan
+var loaded = AccountLoader.Load([new AccountInput(savedVariablesPath)]);
+
+foreach (var diagnostic in loaded.Diagnostics)
+    Console.WriteLine(diagnostic);
+
+foreach (var account in loaded.Accounts)
 {
-    Name = "Exploration", AccountKey = account.Key, CharacterId = character.Id,
-    Baseline = character.Build.DeepClone(), Build = character.Build.DeepClone()
-};
-plan = BuildEditor.Apply(plan, new BuildPatch
-{
-    Attributes = new() { Health = 0, Magicka = 64, Stamina = 0 }
-}, catalog);
-
-var validation = BuildAnalysis.Validate(character, plan.Build, catalog,
-    plan.Constraints, BuildSections.Attributes);
-var differences = PlanAnalysis.Compare(character.Build, plan.Build,
-    BuildSections.Attributes, catalog);
-if (validation.Valid)
-    Console.WriteLine(BuildCodec.Export(plan.Build, catalog, BuildSections.Attributes));
-```
-
-`EsoAccount` contains characters, their progression/builds/saved profiles/storage, shared storage, set collection masks, and central source coverage. `account.Inventory` enumerates the account's selected storage without copying it into every character. `DeepClone()` creates an independent editable graph. `AccountJson` round-trips typed graphs and plans; storage is caller-owned.
-
-`BuildEditor` accepts batched typed patches, including name/ID skill selectors, individual bar slots, CP, equipment, scribing, guide references and target requirements. An invalid batch does not modify the original plan. `PlanAnalysis` exposes requirements, equipment candidates, per-bar set counts, exact-catalog crafting shortages and meaningful build differences. `BuildCodec.Import(CspsBuild.Parse(text))` turns a saved native import into a typed build; `Export` requires explicit sections.
-
-`Valid` means no known structural errors; `ReadyNow` additionally requires no unmet or unknown requirements. UESP records purchased skills, not complete progression of every unpurchased morph. Automatically granted skill costs are not fully described by that source; when costs do not reconcile with the observed spent total, incremental/refundable costs remain null with a diagnostic. CP cap/prerequisite checks and exact crafting bills require those definitions in the supplied catalog. Missing metadata is reported rather than guessed. Neither successful validation nor a saved CSPS profile proves application in game.
-
-The library performs no network requests and never writes addon files. Hosts can reload sources on every operation and persist account/plan JSON in SQLite, files or their preferred storage. `samples/EsoData.Benchmark` measures read/parse costs without printing account contents.
-
-## Install
-
-```shell
-dotnet add package EsoData.NET
-```
-
-## Saved combat reports
-
-`AccountLoadResult.CombatReports` and `CombatMetricsReader.Read(path)` expose Combat Metrics' saved fight summaries: character name, fight label/location, start time, damage/healing durations and outgoing/incoming DPS/HPS. Reports are installation-wide because CMX's summary does not identify an account or server. Empty saved history is distinct from a missing source.
-
-CMX recent fights exist in game memory until the user saves a fight in its report window and flushes SavedVariables with `/reloadui` or logout. Only saved fights are readable. Modern compressed ability/buff detail payloads are flagged but not decoded; this reader does not fabricate a rotation analysis from summary DPS. Compatible summary fields are read without pinning the addon/game version.
-
-## Retained group loot
-
-`account.LootHistory` reads optional Loot Log history with timestamps, quantities, recipient account/character names and item links/IDs. `LootLogReader.Read(path)` is also available independently. Packed records and legacy table records are supported; non-item collectibles and antiquities retain their original link with a null item ID. Malformed rows produce diagnostics.
-
-History is scoped to the local installation and server, not account ownership. It never adds drops to inventory. Loot Log keeps a bounded history according to its settings; deleted or unrecorded events cannot be recovered. File modification time and source coverage remain available, and saving with `/reloadui` or logout is required to see newly recorded loot on disk.
-
-`EsoData.Formats.LootWhisper.Create(lootEvent, itemName)` generates a copyable whisper draft with recipient, labeled item link, message and whisper command. Account names are preferred with a space separator and no comma; character fallback uses a comma separator. `LootWhisper.CreateMany` combines one player's drops into messages bounded by a configurable maximum command length (default 350), keeping item links intact. It preserves every numeric field of the observed link, including enchantments and unknown fields; a catalog name changes display text only. Non-item events or unusable recipients return null. This formats text only, without sending chat or asserting trade eligibility.
-
-## Local TTC prices
-
-```csharp
-using EsoData.Pricing;
-
-// The entire downloaded regional catalog, not just account-owned items.
-var market = TtcPriceReader.Read(Path.Combine(addonsDirectory, "TamrielTradeCentre"), "EU", "EN");
-var loadedWithPrices = AccountLoader.Load([new(savedVariablesPath)], catalog, [market]);
-var pricedAccount = loadedWithPrices.Accounts.Single(a => a.Server == "EU");
-foreach (var item in pricedAccount.Inventory)
-    Console.WriteLine($"{item.Name}: {item.Price.Status}, stack estimate {item.EstimatedStackPrice}");
-
-// Exact variant lookup also works without an account.
-PriceEntry? exact = market.Find(market.Entries.First().Key);
-market.Associate(pricedAccount); // Refresh associations on an existing graph.
-```
-
-`PriceCatalog.Items` contains TTC identities/localized names; `Entries` contains every priced variant, including unowned items. TTC IDs are **not ESO item IDs**. Keys retain quality, market level (50+CP for champion items), trait, and additional armor/potion/master-writ dimensions. `AccountJson` persists catalogs independently. No price data is compiled or bundled.
-
-Every `OwnedItem` has a `Price` association result. Matched prices keep listing minimum/average/maximum, suggested price, sale average, and listing/sale unit counts separately. Stack estimates use suggested price, then sale average, then listing average; `EstimateBasis` identifies the choice. A match does not establish binding/tradability or sellable wealth.
-
-Missing catalogs, unknown identities, absent listings and missing variant metadata are distinct statuses, never zero. Exact matching uses localized names, quality, level, trait, armor weight and potion effects. Some saves lack equipment traits or master-writ requirements; those items remain `NeedsMetadata`, while all their catalog variants remain available through `Entries`/`Find`. Callers can supply `RequiredLevel`, `RequiredChampionPoints` and `SpecializedItemType` on items with additional metadata. There is no nearest-quality or name-only fallback.
-
-`PriceSource` records region, language, embedded TTC timestamp and file modification time once per account/catalog. Dates are preserved as supplied, not proof of live availability. The reader never downloads data, executes Lua, starts the TTC client or modifies addon files. Refresh TTC's files separately. See `samples/EsoData.Prices` for a local coverage diagnostic.
-
-## Package details
-
-```shell
-dotnet add package EsoData.NET
-```
-
-The package is `EsoData.NET`; its assembly and root namespace are `EsoData`. Requires .NET 10. Release packages are also attached to [GitHub releases](https://github.com/JuliusJacobsohn/EsoData.NET/releases).
-
-## What it supports
-
-| Source or format | Typed support |
-|---|---|
-| IIfA | Account/server character directory and item stacks by character, bank, craft bag and other saved locations |
-| LibCharacterKnowledge | Recipes, furnishing plans, motifs, scribing unlocks, research flags and timers |
-| LibMultiAccountSets | Current compressed and legacy account collection masks, including 36-bit values |
-| uespLog | Character observations, purchased skills and skill-line ranks, CP slots/allocations/budgets, research summaries/timers, current and per-bar stats, equipped items and saved inventories |
-| Caro's Skill Point Saver | Default, named and auxiliary saved profiles; native CSPS text import/export with skills, passive ranks, bars, attributes, CP and gear |
-| Caro's Skill Point Saver installed data | Refreshable Champion Point names and discipline membership from `data/cpinfo.lua` |
-| ESO-Hub | `addondata` text and build-editor URLs, including skills, CP, equipment and consumables |
-| Dolgubon's Lazy Set Crafter | Read saved crafting queues; generate and read item-link lists for **Import Links** |
-| LibSets | Read current installed set names and compressed item-ID membership tables |
-| LibLazyCrafting | Read current glyph, potency and aspect rune tables; resolve exact rune quantities and export chat queue commands |
-| UESP JSON / external JSON | Read item and skill metadata; save/load searchable catalogs independently of the assembly |
-
-Lua readers retain the original parsed tables in `Raw`, including fields not yet modeled. They parse data **without executing Lua**. There is no automatic write-back to addon SavedVariables.
-
-`LazyEnchantingCatalog.Read(libLazyCraftingDirectory)` resolves glyph recipes from the installed addon's `Enchanting.lua`. `Recipe(CraftingOrder)` returns rune IDs, material quantities and a `/script LLC_UserRequests:CraftEnchantingItemId(...)` command. Paste it once into ESO chat and visit an enchanting station to craft loose glyphs; apply them manually. The queue lasts until reload/logout. Standalone glyphs cannot be imported through Lazy Set Crafter's **Import Links**. `Observe(OwnedItem, GameCatalog)` distinguishes applied glyphs from built-in enchants; missing default enchant metadata stays unknown. UESP item catalogs can provide `defaultEnchantId` without bundling a game database.
-
-## Read account inventory
-
-```csharp
-using EsoData.Addons;
-
-var inventory = IifaReader.Read(Path.Combine(savedVariablesDirectory, "IIfA.lua"));
-
-foreach (var location in inventory.Inventories)
-foreach (var stack in location.Items)
-    Console.WriteLine($"{stack.Name}: {stack.Count} in {stack.Location}, item {stack.Link.ItemId}");
-
-Console.WriteLine($"Last disk save: {inventory.Source.FileWrittenAt}");
-foreach (var message in inventory.Diagnostics)
-    Console.WriteLine(message);
-```
-
-Paths are caller-supplied. On Windows, the live server directory is usually under `Documents/Elder Scrolls Online/live/SavedVariables`; Documents may be redirected. Inventory locations are kept separate. The library does not merge different addons' observations and accidentally count the same bank twice.
-
-```csharp
-var knowledge = CharacterKnowledgeReader.Read(Path.Combine(savedVariablesDirectory, "LibCharacterKnowledge.lua"));
-var profiles = CspsReader.Read(Path.Combine(savedVariablesDirectory, "CarosSkillPointSaver.lua"));
-var observations = UespLogReader.Read(Path.Combine(savedVariablesDirectory, "uespLog.lua"));
-```
-
-Missing scans stay missing. In knowledge records, `Known = null` means unavailable; `false` is an observed unset bit. A missing category is not proof that the character knows nothing. A saved CSPS profile is a plan, not proof it is applied.
-
-### Character research, CP and statistics
-
-```csharp
-foreach (var character in observations.CharacterStates)
-{
-    Console.WriteLine($"{character.Character.Name}, observed {character.ObservedAt}");
-    foreach (var craft in character.Research?.Crafts ?? [])
-        Console.WriteLine($"{craft.Craft}: {craft.KnownTraits}/{craft.TotalTraits}; {craft.OpenSlots} research slots free");
-
-    Console.WriteLine($"Unspent CP: {character.Champion?.UnspentPoints}");
-    // Slot values are champion skill IDs; zero means explicitly empty.
-    var slots = character.Champion?.Slots;
-    var currentStats = character.Statistics?.Current?.Values;
-    var skillLineRanks = character.SkillLineRanks;
+    Console.WriteLine($"{account.Name} ({account.Server}): {account.Characters.Count} characters");
+    foreach (var item in account.Inventory.Take(10))
+        Console.WriteLine($"  {item.Name}: {item.Count} in {item.Location}");
 }
 ```
 
-`Research` includes per-line counts, original display labels, active research and its own observation timestamp. Display labels are not trait-ID mappings; a bracketed trait may still be researching. `Champion` adds per-discipline budgets, named stars, their distinct skill/ability IDs and slots while retaining the existing `ChampionAllocations` API. `Statistics` separates current, saved-bar, computed and advanced values, retaining source names and units (including unknown future stat names). Cached bars can come from different moments; buffs and equipment affect the observations. Missing sections are `null`. See [format details](docs/formats.md#uesp-character-details).
+Run it with `dotnet run`. For another installation, server folder or operating system, set `savedVariablesPath` to your actual SavedVariables directory. If no accounts appear, check that `IIfA.lua` exists there and that the addon has saved data.
 
-## Resolve IDs from refreshable catalogs
+Inventory loading does not require `catalog.json`. A catalog supplies additional game definitions for lookups, build analysis and exports; the [catalog guide](https://github.com/JuliusJacobsohn/EsoData.NET/blob/main/docs/usage.md#resolve-ids-from-refreshable-catalogs) shows how to create and save one from installed addon data and external definitions before using it.
 
-```csharp
-using EsoData.Catalogs;
+## Supported addons and formats
 
-var membership = LibSetsCatalog.Read(Path.Combine(addonsDirectory, "LibSets"));
-var metadata = UespCatalog.Parse(File.ReadAllText("uesp-items-and-skills.json"));
-var catalog = GameCatalog.Merge([membership, metadata]);
-catalog.Write("catalog.json");
+| Source or format | Support |
+|---|---|
+| Inventory Insight (IIfA) | Characters and inventory across saved storage locations |
+| uespLog | Character state, skills, CP, equipment, research and statistics |
+| LibCharacterKnowledge | Recipes, plans, motifs, scribing knowledge and research |
+| LibMultiAccountSets | Account set collections |
+| Caro's Skill Point Saver (CSPS) | Saved profiles and native build text import/export |
+| ESO-Hub | Build-editor URLs and addon data |
+| Dolgubon's Lazy Set Crafter / LibLazyCrafting | Crafting queues, equipment imports and glyph recipes |
+| LibSets / UESP JSON / external catalogs | Set, item, skill and other game definitions |
+| Loot Log / Combat Metrics | Retained drops and saved fight summaries |
+| Tamriel Trade Centre | Local market prices and inventory price associations |
 
-var reloaded = GameCatalog.Read("catalog.json");
-foreach (var set in reloaded.FindSets("Order"))
-    Console.WriteLine($"{set.Id}: {set.Names["en"]}, {set.ItemIds.Count} item IDs");
-```
+Available data depends on which addons have recorded it. SavedVariables describe the last disk save; log in to relevant characters, visit storage and save again to refresh them.
 
-Champion Point display names can also be read from the installed CSPS addon without compiling a game-ID table into the library:
+## Documentation and examples
 
-```csharp
-var championNames = CspsChampionCatalog.Read(Path.Combine(addonsDirectory, "CarosSkillPointSaver"));
-```
+- [Usage guide](https://github.com/JuliusJacobsohn/EsoData.NET/blob/main/docs/usage.md): accounts, build editing and export, catalogs, crafting, collections and pricing.
+- [Supported formats and data coverage](https://github.com/JuliusJacobsohn/EsoData.NET/blob/main/docs/formats.md).
+- [Account and build architecture](https://github.com/JuliusJacobsohn/EsoData.NET/blob/main/docs/account-architecture.md).
+- [Example programs](https://github.com/JuliusJacobsohn/EsoData.NET/tree/main/samples): addon inspection, catalogs, CSPS text, pricing and benchmarks.
 
-This source supplies IDs, display names, and discipline membership. It does not claim point caps, prerequisites, or whether a star is slottable; those rules still require a fuller external catalog.
-
-Run that again after updating LibSets to refresh its catalog. Set membership alone does not reveal each item's trait or equipment type. Enrich item/skill metadata from UESP's `exportJson.php` output with `UespCatalog.Parse(json, sourceUrl, version)`, or provide a catalog in the library's JSON shape. `GameCatalog.Merge` preserves LibSets membership and lets later descriptive fields supplement it. Fetching, refresh scheduling and storage belong to your application. UESP access/availability is not guaranteed by this library.
-
-Catalogs record provenance and keep IDs as data. No game database is bundled, downloaded on startup, or pinned to an ESO patch. `GameCatalog` also accepts externally supplied collection-piece slot masks and research-index mappings. **Those mappings are not included in the corresponding addon saves.** See [formats and data boundaries](docs/formats.md).
-
-## Generate a crafting import
-
-```csharp
-using EsoData.Formats;
-using EsoData.Items;
-
-// Numeric values come from the refreshable catalog, not the package.
-var resolved = new CraftedItemSelector(SetId: 642, EquipType: 1, ArmorType: 2, Trait: 11)
-    .Resolve(catalog);
-long resolvedItemId = resolved.Id;
-var item = CraftedItem.Create(resolvedItemId, level: 32, quality: ItemQuality.Epic);
-string pasteIntoLazySetCrafter = CraftingQueue.Write([item, item]);
-```
-
-Repeated links are intentional, for example two identical rings. The **item ID already determines the trait**; setting an arbitrary field in the link cannot turn a different item into Training gear. Supply `enchantmentItemId` to embed a resolved glyph. `CraftedItem.NormalizeLevel(33)` returns `32`; creation requires that you choose the craftable level explicitly. CP tiers and quality are encoded by the same formulas used in the inspected addon source.
-
-Generating a queue does not establish that a crafter has the research, style, station access or materials to fulfill it. Crafting and applying remain in-game actions.
-
-## Read and edit a complete CSPS allocation
-
-```csharp
-using EsoData.Formats;
-
-var build = CspsBuild.Parse(File.ReadAllText("build.txt"));
-Console.WriteLine($"Purchased passives: {build.Skills?.Passive.Count ?? 0}");
-build.Attributes = new(64, 0, 0); // Health, Magicka, Stamina
-File.WriteAllText("updated-build.txt", build.ToString());
-```
-
-`CspsBuild.Skills` holds active morph choices, purchased passive ranks, crafted skills/scripts, styles and subclasses. `Bars` is separate. Assign a new `CspsSkills` value to change purchases. `CspsBuild` also exposes `ChampionPoints`, `Gear`, `Mundus` and `Role`; quickslots/outfits stay as raw text. Parsed sections you do not edit, including additional future sections, are preserved verbatim.
-
-Ordinary native hotbar IDs are **unmorphed rank-one IDs**; active purchase IDs are **selected-morph rank-one IDs**. With complete metadata, `GameCatalog.ToActiveSkill(id)` and `ToBarSlot(id)` resolve that distinction. They report missing metadata instead of guessing.
-
-```csharp
-var hub = HubBuild.Parse(hubUrlOrAddonData);
-string hubUrl = hub.ToUrl();
-```
-
-Hub and native CSPS are separate models because they express different things. Hub cannot express partial passive ranks or gear quality; native CSPS text lacks class/race and item levels. Automatic lossless conversion is not promised. Select **CSPS** for native text and **eso-hub.com** for Hub data in the addon import dropdown.
-
-## Freshness and compatibility
-
-- SavedVariables are the last disk save, not live game memory. `/reloadui` or a normal logout flushes observed state. Characters/banks must first have been observed by the addon.
-- File modification times and available observation timestamps are exposed. There is no background file watcher or implied live connection.
-- API/version numbers are metadata, not allowlists. New patch numbers are accepted; malformed structure produces a parse error or an explicit diagnostic.
-- Research indexes need a mapping matching the research layout; collection bits need actual slot masks, not piece ordinal numbers. Elapsed research timers do not become confirmed learned traits automatically.
-- UESP character data requires its character-saving feature to be enabled. Its raw save can contain private account information; choose what you serialize or share.
-- Export codecs have source/format tests. Generated builds have **not** been applied in-game as part of the automated test suite.
-
-## Build and try it
+## Development
 
 ```shell
 dotnet build EsoData.sln -c Release
-dotnet test EsoData.sln -c Release
-dotnet pack src/EsoData/EsoData.csproj -c Release -o artifacts/packages
-
-dotnet run --project samples/EsoData.Example -- inspect "path/to/SavedVariables"
-dotnet run --project samples/EsoData.Example -- catalog "path/to/AddOns/LibSets" "catalog.json"
+dotnet test EsoData.sln -c Release --no-build
 ```
 
-Tests use small synthetic fixtures. No private account saves or copied game databases are committed. The example skips absent addons. CI builds, tests and packs on Windows and Linux. See [release instructions](docs/releasing.md) for NuGet trusted publishing and GitHub releases.
+Tests use synthetic fixtures; no game installation or private account files are required. CI runs on Windows and Linux. See [release instructions](https://github.com/JuliusJacobsohn/EsoData.NET/blob/main/docs/releasing.md) for packaging and publication.
 
-## Sources and maintenance
-
-The implementation follows addon serializers and their maintained source, rather than copied ID lists. Source links and format assumptions are in [docs/formats.md](docs/formats.md). When a format changes, update that reader and a small regression fixture. Ordinary game-content additions need refreshed catalog data, not larger source files.
-
-This package handles data access and encoding. It does not include a build optimizer, custom bridge addon, archive extractor, game automation, or a database. Those can be separate consumers/providers when needed.
-
-Maintained by Julius Jacobsohn. Licensed under MIT. Not affiliated with or endorsed by ZeniMax Media or Bethesda. The Elder Scrolls and related names belong to their respective owners.
+Maintained by Julius Jacobsohn. Not affiliated with or endorsed by ZeniMax Media or Bethesda.
