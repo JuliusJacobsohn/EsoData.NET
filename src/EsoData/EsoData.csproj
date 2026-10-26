@@ -9,6 +9,7 @@
     <PackageTags>eso;elder-scrolls-online;addons;savedvariables;csps</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>assets/logo.png</PackageIcon>
     <RepositoryUrl>https://github.com/JuliusJacobsohn/EsoData.NET</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageProjectUrl>https://github.com/JuliusJacobsohn/EsoData.NET</PackageProjectUrl>
@@ -21,6 +22,7 @@
   </PropertyGroup>
   <ItemGroup>
     <None Include="../../README.md" Pack="true" PackagePath="/" />
+    <None Include="../../assets/logo.png" Pack="true" PackagePath="assets/" />
     <None Include="../../LICENSE" Pack="true" PackagePath="/" />
   </ItemGroup>
 </Project>
