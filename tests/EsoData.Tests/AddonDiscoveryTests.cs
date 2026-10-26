@@ -7,11 +7,11 @@ public sealed class AddonDiscoveryTests : IDisposable
     private readonly string root = Path.Combine(Path.GetTempPath(), "EsoData.Addons", Guid.NewGuid().ToString("N"));
     private string Addons => Path.Combine(root, "AddOns");
     private string Saves => Path.Combine(root, "SavedVariables");
-    private void Manifest(string relative, string headers)
+    private void Manifest(string relative, string headers, string extension = ".txt")
     {
         var folder = Path.Combine(Addons, relative);
         Directory.CreateDirectory(folder);
-        File.WriteAllText(Path.Combine(folder, Path.GetFileName(folder) + ".txt"), headers);
+        File.WriteAllText(Path.Combine(folder, Path.GetFileName(folder) + extension), headers);
     }
 
     [Fact]
@@ -65,6 +65,19 @@ public sealed class AddonDiscoveryTests : IDisposable
         Assert.False(dependencies[1].Satisfied);
         Assert.True(dependencies[2].Installed);
         Assert.Null(dependencies[2].Satisfied);
+    }
+
+    [Fact]
+    public void RecognizesModernManifestsAndDoesNotCountLegacyAndModernAsTwoInstallations()
+    {
+        Manifest("LibSets", "## Version: legacy");
+        Manifest("LibSets", "## Version: modern\n## DependsOn: EmbeddedLibrary>=5", ".ADDON");
+        Manifest(Path.Combine("OtherAddon", "libs", "EmbeddedLibrary"), "## AddOnVersion: 5", ".addon");
+        var addon = Assert.Single(AddonDiscovery.Inspect(Addons).Addons, a => a.Id == "LibSets");
+        Assert.True(addon.Installed);
+        var installation = Assert.Single(addon.Installations);
+        Assert.Equal("modern", installation.Version);
+        Assert.True(Assert.Single(installation.RequiredDependencies).Satisfied);
     }
 
     [Fact]

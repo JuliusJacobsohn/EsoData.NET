@@ -43,7 +43,9 @@ public static partial class AddonDiscovery
                 foreach (var path in Directory.EnumerateFiles(addonsPath, "*", new EnumerationOptions
                 { RecurseSubdirectories = true, IgnoreInaccessible = false, AttributesToSkip = FileAttributes.ReparsePoint }))
                 {
-                    if (!Path.GetExtension(path).Equals(".txt", StringComparison.OrdinalIgnoreCase)) continue;
+                    var extension = Path.GetExtension(path);
+                    if (!extension.Equals(".txt", StringComparison.OrdinalIgnoreCase)
+                        && !extension.Equals(".addon", StringComparison.OrdinalIgnoreCase)) continue;
                     var id = Path.GetFileNameWithoutExtension(path);
                     if (!id.Equals(Path.GetFileName(Path.GetDirectoryName(path)), StringComparison.OrdinalIgnoreCase)) continue;
                     var headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -64,7 +66,10 @@ public static partial class AddonDiscovery
             }
             catch (Exception error) when (FileError(error)) { diagnostics.Add($"Addon scan incomplete at {addonsPath}: {error.Message}"); }
         }
-        var index = manifests.ToLookup(m => m.Id, StringComparer.OrdinalIgnoreCase);
+        // A modern and legacy manifest in the same directory describe one installation.
+        var index = manifests.GroupBy(m => Path.GetDirectoryName(m.Path), StringComparer.Ordinal)
+            .Select(g => g.OrderBy(m => Path.GetExtension(m.Path).Equals(".addon", StringComparison.OrdinalIgnoreCase) ? 0 : 1).First())
+            .ToLookup(m => m.Id, StringComparer.OrdinalIgnoreCase);
         var addons = Providers.Select(provider =>
         {
             var installations = index[provider.Id].OrderBy(m => m.Path, StringComparer.Ordinal).Select(m =>
